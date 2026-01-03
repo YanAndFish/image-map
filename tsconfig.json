@@ -1,0 +1,9 @@
+{
+  "extends":"@yafh/tsconfig/tsconfig.node.json",
+  "compilerOptions": {
+  },
+  "include": [
+    "src/**/*.ts",
+    "*.config.ts"
+  ],
+}
