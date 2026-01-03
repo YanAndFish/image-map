@@ -25,7 +25,6 @@
   },
   "optionalDependencies": {
     "@yafh/image-map-darwin-arm64": "workspace:*",
-    "@yafh/image-map-darwin-x64": "workspace:*",
     "@yafh/image-map-linux-arm64": "workspace:*",
     "@yafh/image-map-linux-x64": "workspace:*",
     "@yafh/image-map-win32-arm64": "workspace:*",

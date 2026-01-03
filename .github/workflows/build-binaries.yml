@@ -18,10 +18,6 @@ jobs:
             target: aarch64-apple-darwin
             bin: image-map
             build: cargo
-          - os: macos-14-large
-            target: x86_64-apple-darwin
-            bin: image-map
-            build: cargo
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             bin: image-map

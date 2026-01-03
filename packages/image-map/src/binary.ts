@@ -8,7 +8,6 @@ const require = createRequire(import.meta.url)
 
 export type SupportedPlatformPackage
   = | '@yafh/image-map-darwin-arm64'
-    | '@yafh/image-map-darwin-x64'
     | '@yafh/image-map-linux-arm64'
     | '@yafh/image-map-linux-x64'
     | '@yafh/image-map-win32-arm64'
@@ -20,8 +19,6 @@ export function getPlatformPackageName(
 ): SupportedPlatformPackage {
   if (platform === 'darwin' && arch === 'arm64')
     return '@yafh/image-map-darwin-arm64'
-  if (platform === 'darwin' && arch === 'x64')
-    return '@yafh/image-map-darwin-x64'
   if (platform === 'linux' && arch === 'arm64')
     return '@yafh/image-map-linux-arm64'
   if (platform === 'linux' && arch === 'x64')

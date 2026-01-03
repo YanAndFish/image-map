@@ -43,9 +43,6 @@ importers:
       '@yafh/image-map-darwin-arm64':
         specifier: workspace:*
         version: link:../image-map-darwin-arm64
-      '@yafh/image-map-darwin-x64':
-        specifier: workspace:*
-        version: link:../image-map-darwin-x64
       '@yafh/image-map-linux-arm64':
         specifier: workspace:*
         version: link:../image-map-linux-arm64
@@ -60,8 +57,6 @@ importers:
         version: link:../image-map-win32-x64
 
   packages/image-map-darwin-arm64: {}
-
-  packages/image-map-darwin-x64: {}
 
   packages/image-map-linux-arm64: {}
 

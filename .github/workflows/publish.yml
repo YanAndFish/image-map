@@ -17,10 +17,6 @@ jobs:
             target: aarch64-apple-darwin
             bin: image-map
             build: cargo
-          - os: macos-14-large
-            target: x86_64-apple-darwin
-            bin: image-map
-            build: cargo
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             bin: image-map
@@ -109,21 +105,18 @@ jobs:
         shell: bash
         run: |
           mkdir -p packages/image-map-darwin-arm64/bin
-          mkdir -p packages/image-map-darwin-x64/bin
           mkdir -p packages/image-map-linux-arm64/bin
           mkdir -p packages/image-map-linux-x64/bin
           mkdir -p packages/image-map-win32-arm64/bin
           mkdir -p packages/image-map-win32-x64/bin
 
           cp "artifacts/image-map-aarch64-apple-darwin/image-map" packages/image-map-darwin-arm64/bin/image-map
-          cp "artifacts/image-map-x86_64-apple-darwin/image-map" packages/image-map-darwin-x64/bin/image-map
           cp "artifacts/image-map-aarch64-unknown-linux-gnu/image-map" packages/image-map-linux-arm64/bin/image-map
           cp "artifacts/image-map-x86_64-unknown-linux-gnu/image-map" packages/image-map-linux-x64/bin/image-map
           cp "artifacts/image-map-aarch64-pc-windows-msvc/image-map.exe" packages/image-map-win32-arm64/bin/image-map.exe
           cp "artifacts/image-map-x86_64-pc-windows-msvc/image-map.exe" packages/image-map-win32-x64/bin/image-map.exe
 
           chmod +x packages/image-map-darwin-arm64/bin/image-map
-          chmod +x packages/image-map-darwin-x64/bin/image-map
           chmod +x packages/image-map-linux-arm64/bin/image-map
           chmod +x packages/image-map-linux-x64/bin/image-map
           chmod +x packages/image-map/bin/image-map
@@ -136,7 +129,6 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           pnpm -C packages/image-map-darwin-arm64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-darwin-x64 publish --access public --no-git-checks
           pnpm -C packages/image-map-linux-arm64 publish --access public --no-git-checks
           pnpm -C packages/image-map-linux-x64 publish --access public --no-git-checks
           pnpm -C packages/image-map-win32-arm64 publish --access public --no-git-checks
