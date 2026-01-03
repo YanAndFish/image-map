@@ -1,9 +1,10 @@
 {
-  "extends":"@yafh/tsconfig/tsconfig.node.json",
+  "extends": "@yafh/tsconfig/tsconfig.node.json",
   "compilerOptions": {
   },
   "include": [
     "src/**/*.ts",
+    "packages/**/*.ts",
     "*.config.ts"
-  ],
+  ]
 }

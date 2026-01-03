@@ -1,0 +1,14 @@
+{
+  "name": "@yafh/image-map-linux-x64",
+  "version": "1.0.0",
+  "description": "image-map binary for linux-x64",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin"
+  ]
+}

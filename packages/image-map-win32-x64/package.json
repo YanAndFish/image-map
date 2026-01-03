@@ -1,0 +1,14 @@
+{
+  "name": "@yafh/image-map-win32-x64",
+  "version": "1.0.0",
+  "description": "image-map binary for win32-x64",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin"
+  ]
+}

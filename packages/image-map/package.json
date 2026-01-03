@@ -1,0 +1,28 @@
+{
+  "name": "@yafh/image-map",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "图片瓦片生成器 (SDK + CLI)",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "bin": {
+    "image-map": "./bin/image-map"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown"
+  },
+  "optionalDependencies": {
+    "@yafh/image-map-darwin-arm64": "1.0.0",
+    "@yafh/image-map-darwin-x64": "1.0.0",
+    "@yafh/image-map-linux-x64": "1.0.0",
+    "@yafh/image-map-win32-x64": "1.0.0"
+  }
+}

@@ -1,8 +1,12 @@
 {
-  "name": "@yafh/image-map",
+  "name": "image-map-workspace",
   "version": "1.0.0",
-  "description": "图片瓦片生成器",
-  "main": "index.js",
+  "private": true,
+  "packageManager": "pnpm@10.26.2",
+  "description": "image-map monorepo workspace",
+  "author": "YanAndFish",
+  "license": "MIT",
+  "keywords": [],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -10,10 +14,6 @@
     "update-deps": "pnpm dlx taze -w -i && cd src-native && cargo update",
     "preinstall": "pnpm dlx only-allow pnpm"
   },
-  "keywords": [],
-  "author": "YanAndFish",
-  "license": "MIT",
-  "packageManager": "pnpm@10.26.2",
   "devDependencies": {
     "@antfu/eslint-config": "^6.7.3",
     "@types/node": "^25.0.3",

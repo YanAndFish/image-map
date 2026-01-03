@@ -1,0 +1,133 @@
+name: publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish (e.g. 1.2.3)
+        required: true
+        type: string
+  push:
+    tags:
+      - v*
+
+jobs:
+  build-native:
+    name: build-${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: aarch64-apple-darwin
+            bin: image-map
+          - os: macos-13
+            target: x86_64-apple-darwin
+            bin: image-map
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin: image-map
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: image-map.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        shell: bash
+        run: |
+          cd src-native
+          cargo build --release --target "${{ matrix.target }}"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-map-${{ matrix.target }}
+          path: src-native/target/${{ matrix.target }}/release/${{ matrix.bin }}
+
+  publish:
+    name: publish-npm
+    needs: build-native
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            ref="${GITHUB_REF_NAME}"
+            echo "version=${ref#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync package versions
+        run: node scripts/set-version.mjs ${{ steps.version.outputs.version }}
+
+      - name: Download binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Stage binaries into platform packages
+        shell: bash
+        run: |
+          mkdir -p packages/image-map-darwin-arm64/bin
+          mkdir -p packages/image-map-darwin-x64/bin
+          mkdir -p packages/image-map-linux-x64/bin
+          mkdir -p packages/image-map-win32-x64/bin
+
+          cp "artifacts/image-map-aarch64-apple-darwin/image-map" packages/image-map-darwin-arm64/bin/image-map
+          cp "artifacts/image-map-x86_64-apple-darwin/image-map" packages/image-map-darwin-x64/bin/image-map
+          cp "artifacts/image-map-x86_64-unknown-linux-gnu/image-map" packages/image-map-linux-x64/bin/image-map
+          cp "artifacts/image-map-x86_64-pc-windows-msvc/image-map.exe" packages/image-map-win32-x64/bin/image-map.exe
+
+          chmod +x packages/image-map-darwin-arm64/bin/image-map
+          chmod +x packages/image-map-darwin-x64/bin/image-map
+          chmod +x packages/image-map-linux-x64/bin/image-map
+          chmod +x packages/image-map/bin/image-map
+
+      - name: Build main package
+        run: pnpm -C packages/image-map build
+
+      - name: Publish platform packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          pnpm -C packages/image-map-darwin-arm64 publish --access public --no-git-checks
+          pnpm -C packages/image-map-darwin-x64 publish --access public --no-git-checks
+          pnpm -C packages/image-map-linux-x64 publish --access public --no-git-checks
+          pnpm -C packages/image-map-win32-x64 publish --access public --no-git-checks
+
+      - name: Publish main package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm -C packages/image-map publish --access public --no-git-checks
