@@ -1,0 +1,14 @@
+{
+  "name": "@yafh/image-map-win32-ia32",
+  "version": "1.0.0",
+  "description": "image-map binary for win32-ia32",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "ia32"
+  ],
+  "files": [
+    "bin"
+  ]
+}

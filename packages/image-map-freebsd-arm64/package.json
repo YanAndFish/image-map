@@ -1,0 +1,14 @@
+{
+  "name": "@yafh/image-map-freebsd-arm64",
+  "version": "1.0.0",
+  "description": "image-map binary for freebsd-arm64",
+  "os": [
+    "freebsd"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "bin"
+  ]
+}

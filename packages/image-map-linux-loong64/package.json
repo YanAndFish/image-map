@@ -1,0 +1,14 @@
+{
+  "name": "@yafh/image-map-linux-loong64",
+  "version": "1.0.0",
+  "description": "image-map binary for linux-loong64",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "loong64"
+  ],
+  "files": [
+    "bin"
+  ]
+}

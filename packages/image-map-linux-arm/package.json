@@ -1,0 +1,14 @@
+{
+  "name": "@yafh/image-map-linux-arm",
+  "version": "1.0.0",
+  "description": "image-map binary for linux-arm",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm"
+  ],
+  "files": [
+    "bin"
+  ]
+}

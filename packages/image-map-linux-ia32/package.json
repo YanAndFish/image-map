@@ -1,0 +1,14 @@
+{
+  "name": "@yafh/image-map-linux-ia32",
+  "version": "1.0.0",
+  "description": "image-map binary for linux-ia32",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "ia32"
+  ],
+  "files": [
+    "bin"
+  ]
+}
