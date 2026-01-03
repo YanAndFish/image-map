@@ -1,12 +1,6 @@
 name: publish
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Version to publish (e.g. 1.2.3)
-        required: true
-        type: string
   push:
     tags:
       - v*
@@ -77,20 +71,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Resolve version
-        id: version
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
-          else
-            ref="${GITHUB_REF_NAME}"
-            echo "version=${ref#v}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Sync package versions
-        run: node scripts/set-version.mjs ${{ steps.version.outputs.version }}
 
       - name: Download binary artifacts
         uses: actions/download-artifact@v4

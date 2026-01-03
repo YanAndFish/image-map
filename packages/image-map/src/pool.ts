@@ -1,248 +1,189 @@
+import type { GenerateResult, Origin, TileFormat } from './protocol'
 import type {
-  GenerateOptions,
-  GenerateResult,
-  Origin,
-  RequestMessage,
-  ResponseMessage,
-  TileFormat,
-} from './protocol'
-import { spawn } from 'node:child_process'
-import { randomUUID } from 'node:crypto'
-import { once } from 'node:events'
+  WorkerParams,
+  WorkerProgressMessage,
+  WorkerTask,
+} from './worker-protocol'
 
-import readline from 'node:readline'
-import { resolveBinaryPath } from './binary'
+import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { MessageChannel } from 'node:worker_threads'
 
+import Tinypool from 'tinypool'
+
+/**
+ * Parameters for generating tiles.
+ */
 export interface GenerateParams {
+  /** Input file path. */
   input: string
+  /** Output directory path. */
   output: string
+  /** Tile size in pixels. */
   tileSize?: number
+  /** Output formats. */
   formats?: TileFormat[]
+  /** Origin position. */
   origin?: Origin
+  /** Minimum zoom level. */
   minZoom?: number
+  /** Maximum zoom level. */
   maxZoom?: number
+  /** Progress callback. */
   onProgress?: (current: number, total: number, message: string) => void
 }
 
+/**
+ * Pool configuration options.
+ */
 export interface PoolOptions {
+  /** Maximum concurrent workers. */
   concurrency?: number
 }
 
+/**
+ * Image map task pool.
+ */
 export interface ImageMapPool {
+  /** Add a task into the queue. */
   add: (task: GenerateParams) => void
+  /** Run queued tasks and return ordered results. */
   run: () => Promise<GenerateResult[]>
 }
 
+/**
+ * Create a new image map task pool.
+ */
 export function createPool(options: PoolOptions = {}): ImageMapPool {
   return new Pool(options)
 }
 
+/**
+ * Default implementation backed by Tinypool.
+ */
 class Pool implements ImageMapPool {
   private readonly concurrency: number
   private readonly queue: GenerateParams[] = []
 
+  /**
+   * Create a pool with configured concurrency.
+   */
   constructor(options: PoolOptions) {
     this.concurrency = Math.max(1, options.concurrency ?? 1)
   }
 
+  /** Add a task into the pool queue. */
   add(task: GenerateParams) {
     this.queue.push(task)
   }
 
+  /** Execute all queued tasks with a Tinypool worker pool. */
   async run(): Promise<GenerateResult[]> {
     const tasks = this.queue.splice(0, this.queue.length)
     if (tasks.length === 0)
       return []
 
-    const workers = Array.from({ length: Math.min(this.concurrency, tasks.length) }, () => new ImageMapWorker())
+    const threadCount = Math.min(this.concurrency, tasks.length)
+    const pool = new Tinypool({
+      filename: resolveWorkerUrl(),
+      minThreads: threadCount,
+      maxThreads: threadCount,
+      concurrentTasksPerWorker: 1,
+      teardown: 'teardown',
+    })
+
     try {
       const results: GenerateResult[] = Array.from({ length: tasks.length })
-      let nextIndex = 0
-
       await Promise.all(
-        workers.map(async (worker) => {
-          // Each worker processes tasks sequentially.
-          while (true) {
-            const i = nextIndex++
-            if (i >= tasks.length)
-              return
-            results[i] = await worker.generate(tasks[i])
-          }
-        }),
+        tasks.map((task, index) => this.runTask(pool, task, index, results)),
       )
-
       return results
     }
     finally {
-      await Promise.allSettled(workers.map(w => w.dispose()))
+      await pool.destroy()
     }
   }
-}
 
-interface PendingTask {
-  onProgress?: (current: number, total: number, message: string) => void
-  resolve: (result: GenerateResult) => void
-  reject: (error: Error) => void
-}
-
-class ImageMapWorker {
-  private readonly child = spawn(resolveBinaryPath(), [], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-  })
-
-  private readonly pending = new Map<string, PendingTask>()
-
-  private last: Promise<unknown> = Promise.resolve()
-  private disposed = false
-
-  constructor() {
-    const rl = readline.createInterface({ input: this.child.stdout })
-    rl.on('line', (line) => {
-      this.handleLine(line)
-    })
-
-    const failAll = (err: Error) => {
-      for (const [id, task] of this.pending) {
-        this.pending.delete(id)
-        task.reject(err)
-      }
+  /**
+   * Run a single task in Tinypool and store its result.
+   */
+  private async runTask(
+    pool: Tinypool,
+    task: GenerateParams,
+    index: number,
+    results: GenerateResult[],
+  ): Promise<void> {
+    const payload: WorkerTask = {
+      params: toWorkerParams(task),
     }
 
-    this.child.on('error', (err) => {
-      failAll(err instanceof Error ? err : new Error(String(err)))
-    })
-
-    this.child.on('exit', (code, signal) => {
-      const msg = `image-map worker exited (code=${code ?? 'null'}, signal=${signal ?? 'null'})`
-      failAll(new Error(msg))
-    })
-  }
-
-  generate(params: GenerateParams): Promise<GenerateResult> {
-    const task = this.last.then(() => this.generateImpl(params))
-    // Keep the queue alive even if a task fails.
-    this.last = task.then(
-      () => undefined,
-      () => undefined,
-    )
-    return task
-  }
-
-  async dispose(): Promise<void> {
-    if (this.disposed)
+    if (!task.onProgress) {
+      results[index] = await pool.run(payload)
       return
-    this.disposed = true
+    }
 
+    const { port1, port2 } = new MessageChannel()
+    const onProgress = task.onProgress
+    payload.port = port1
+
+    const handleMessage = (message: unknown) => {
+      if (!isWorkerProgressMessage(message))
+        return
+      onProgress(message.current, message.total, message.message)
+    }
+
+    port2.on('message', handleMessage)
     try {
-      this.child.stdin.end()
-    }
-    catch {}
-
-    if (!this.child.killed)
-      this.child.kill()
-
-    try {
-      await once(this.child, 'exit')
-    }
-    catch {}
-  }
-
-  private generateImpl(params: GenerateParams): Promise<GenerateResult> {
-    if (this.disposed)
-      return Promise.reject(new Error('image-map worker is disposed'))
-
-    const id = randomUUID()
-    const request: RequestMessage = {
-      type: 'generate',
-      id,
-      input: params.input,
-      output: params.output,
-      options: normalizeOptions(params),
-    }
-
-    return new Promise<GenerateResult>((resolve, reject) => {
-      this.pending.set(id, {
-        onProgress: params.onProgress,
-        resolve,
-        reject,
+      results[index] = await pool.run(payload, {
+        transferList: {
+          transfer: [port1],
+        },
       })
-
-      const line = `${JSON.stringify(request)}\n`
-      this.child.stdin.write(line, (err) => {
-        if (!err)
-          return
-        this.pending.delete(id)
-        reject(err instanceof Error ? err : new Error(String(err)))
-      })
-    })
-  }
-
-  private handleLine(line: string) {
-    const trimmed = line.trim()
-    if (!trimmed)
-      return
-
-    let msg: ResponseMessage
-    try {
-      msg = JSON.parse(trimmed) as ResponseMessage
     }
-    catch {
-      return
-    }
-
-    if (!msg || typeof msg !== 'object')
-      return
-
-    if (!('id' in msg) || typeof (msg as any).id !== 'string')
-      return
-
-    const id = (msg as any).id as string
-    const pending = this.pending.get(id)
-    if (!pending)
-      return
-
-    if (msg.type === 'progress') {
-      pending.onProgress?.(msg.current, msg.total, msg.message)
-      return
-    }
-
-    this.pending.delete(id)
-
-    if (msg.type === 'complete') {
-      pending.resolve(msg.result)
-      return
-    }
-
-    if (msg.type === 'error') {
-      pending.reject(new Error(msg.error))
+    finally {
+      port2.off('message', handleMessage)
+      port2.close()
     }
   }
 }
 
-function normalizeOptions(params: GenerateParams): GenerateOptions {
-  const tileSize = params.tileSize ?? 256
-  const formats = params.formats ?? ['webp']
-  const origin = params.origin ?? 'topLeft'
-  const minZoom = params.minZoom ?? 0
-  const maxZoom = params.maxZoom ?? 0
+/**
+ * Remove non-serializable fields from params before sending to workers.
+ */
+function toWorkerParams(params: GenerateParams): WorkerParams {
+  const { onProgress: _onProgress, ...rest } = params
+  return rest
+}
 
-  if (!Number.isFinite(tileSize) || tileSize <= 0)
-    throw new Error('tileSize must be a positive number')
+/**
+ * Resolve the worker entry url, preferring the built .mjs output.
+ */
+function resolveWorkerUrl(): string {
+  const mjsUrl = new URL('./pool-worker.mjs', import.meta.url)
+  if (fs.existsSync(fileURLToPath(mjsUrl)))
+    return mjsUrl.href
 
-  if (formats.length === 0)
-    throw new Error('formats must contain at least one format')
+  const tsUrl = new URL('./pool-worker.ts', import.meta.url)
+  if (fs.existsSync(fileURLToPath(tsUrl)))
+    return tsUrl.href
 
-  if (minZoom < 0 || maxZoom < 0)
-    throw new Error('minZoom/maxZoom must be >= 0')
+  return mjsUrl.href
+}
 
-  if (minZoom > maxZoom)
-    throw new Error('minZoom must be <= maxZoom')
+/**
+ * Narrow unknown messages into worker progress messages.
+ */
+function isWorkerProgressMessage(value: unknown): value is WorkerProgressMessage {
+  if (!value || typeof value !== 'object')
+    return false
 
-  return {
-    tileSize,
-    formats,
-    origin,
-    minZoom,
-    maxZoom,
-  }
+  const msg = value as WorkerProgressMessage
+  if (msg.type !== 'progress')
+    return false
+
+  return (
+    typeof msg.current === 'number'
+    && typeof msg.total === 'number'
+    && typeof msg.message === 'string'
+  )
 }

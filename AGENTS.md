@@ -23,3 +23,7 @@
 ## 提交与 Pull Request 指南
 - 提交信息沿用 Conventional Commits（示例：`chore: init`）。
 - PR 需说明变更目的、影响范围、验证方式（如 `pnpm lint`、`pnpm tsc`、`cargo test`）。
+
+## 计划与进度追踪
+- 计划文件：`.cursor/plans/图片瓦片生成库_9df5f966.plan.md`。
+- 已完成事项（全部完成）：Rust 核心、Rust 本地编译测试、npm SDK、CLI、交叉编译与 CI、多平台发布。
