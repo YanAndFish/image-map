@@ -87,11 +87,17 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cargo-zigbuild and zig
+      - name: Install cargo-zigbuild
         if: matrix.build == 'zigbuild'
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-zigbuild,zig
+          tool: cargo-zigbuild
+
+      - name: Setup zig
+        if: matrix.build == 'zigbuild'
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.12.0
 
       - name: Build
         shell: bash
