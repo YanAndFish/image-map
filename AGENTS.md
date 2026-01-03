@@ -23,7 +23,3 @@
 ## 提交与 Pull Request 指南
 - 提交信息沿用 Conventional Commits（示例：`chore: init`）。
 - PR 需说明变更目的、影响范围、验证方式（如 `pnpm lint`、`pnpm tsc`、`cargo test`）。
-
-## 代理与联网指令
-- 联网命令前设置代理：
-  `export https_proxy=http://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 all_proxy=socks5://127.0.0.1:7890`
