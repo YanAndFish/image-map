@@ -1,0 +1,24 @@
+{
+  "name": "@yafh/image-map",
+  "version": "1.0.0",
+  "description": "图片瓦片生成器",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "tsc": "tsc --noEmit",
+    "update-deps": "pnpm dlx taze -w -i && cd src-native && cargo update",
+    "preinstall": "pnpm dlx only-allow pnpm"
+  },
+  "keywords": [
+  ],
+  "author": "YanAndFish",
+  "license": "MIT",
+  "packageManager": "pnpm@10.26.2",
+  "devDependencies": {
+    "@antfu/eslint-config": "^6.7.3",
+    "@types/node": "^25.0.3",
+    "eslint": "^9.39.2",
+    "typescript": "^5.9.3"
+  }
+}
