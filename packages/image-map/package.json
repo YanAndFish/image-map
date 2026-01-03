@@ -26,19 +26,9 @@
   "optionalDependencies": {
     "@yafh/image-map-darwin-arm64": "workspace:*",
     "@yafh/image-map-darwin-x64": "workspace:*",
-    "@yafh/image-map-freebsd-arm64": "workspace:*",
-    "@yafh/image-map-freebsd-x64": "workspace:*",
-    "@yafh/image-map-linux-arm": "workspace:*",
     "@yafh/image-map-linux-arm64": "workspace:*",
-    "@yafh/image-map-linux-ia32": "workspace:*",
-    "@yafh/image-map-linux-loong64": "workspace:*",
-    "@yafh/image-map-linux-mips64el": "workspace:*",
-    "@yafh/image-map-linux-ppc64": "workspace:*",
-    "@yafh/image-map-linux-riscv64": "workspace:*",
-    "@yafh/image-map-linux-s390x": "workspace:*",
     "@yafh/image-map-linux-x64": "workspace:*",
     "@yafh/image-map-win32-arm64": "workspace:*",
-    "@yafh/image-map-win32-ia32": "workspace:*",
     "@yafh/image-map-win32-x64": "workspace:*"
   },
   "devDependencies": {

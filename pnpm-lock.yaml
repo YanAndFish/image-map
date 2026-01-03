@@ -46,45 +46,15 @@ importers:
       '@yafh/image-map-darwin-x64':
         specifier: workspace:*
         version: link:../image-map-darwin-x64
-      '@yafh/image-map-freebsd-arm64':
-        specifier: workspace:*
-        version: link:../image-map-freebsd-arm64
-      '@yafh/image-map-freebsd-x64':
-        specifier: workspace:*
-        version: link:../image-map-freebsd-x64
-      '@yafh/image-map-linux-arm':
-        specifier: workspace:*
-        version: link:../image-map-linux-arm
       '@yafh/image-map-linux-arm64':
         specifier: workspace:*
         version: link:../image-map-linux-arm64
-      '@yafh/image-map-linux-ia32':
-        specifier: workspace:*
-        version: link:../image-map-linux-ia32
-      '@yafh/image-map-linux-loong64':
-        specifier: workspace:*
-        version: link:../image-map-linux-loong64
-      '@yafh/image-map-linux-mips64el':
-        specifier: workspace:*
-        version: link:../image-map-linux-mips64el
-      '@yafh/image-map-linux-ppc64':
-        specifier: workspace:*
-        version: link:../image-map-linux-ppc64
-      '@yafh/image-map-linux-riscv64':
-        specifier: workspace:*
-        version: link:../image-map-linux-riscv64
-      '@yafh/image-map-linux-s390x':
-        specifier: workspace:*
-        version: link:../image-map-linux-s390x
       '@yafh/image-map-linux-x64':
         specifier: workspace:*
         version: link:../image-map-linux-x64
       '@yafh/image-map-win32-arm64':
         specifier: workspace:*
         version: link:../image-map-win32-arm64
-      '@yafh/image-map-win32-ia32':
-        specifier: workspace:*
-        version: link:../image-map-win32-ia32
       '@yafh/image-map-win32-x64':
         specifier: workspace:*
         version: link:../image-map-win32-x64
@@ -93,31 +63,11 @@ importers:
 
   packages/image-map-darwin-x64: {}
 
-  packages/image-map-freebsd-arm64: {}
-
-  packages/image-map-freebsd-x64: {}
-
-  packages/image-map-linux-arm: {}
-
   packages/image-map-linux-arm64: {}
-
-  packages/image-map-linux-ia32: {}
-
-  packages/image-map-linux-loong64: {}
-
-  packages/image-map-linux-mips64el: {}
-
-  packages/image-map-linux-ppc64: {}
-
-  packages/image-map-linux-riscv64: {}
-
-  packages/image-map-linux-s390x: {}
 
   packages/image-map-linux-x64: {}
 
   packages/image-map-win32-arm64: {}
-
-  packages/image-map-win32-ia32: {}
 
   packages/image-map-win32-x64: {}
 

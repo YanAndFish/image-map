@@ -9,19 +9,9 @@ const require = createRequire(import.meta.url)
 export type SupportedPlatformPackage
   = | '@yafh/image-map-darwin-arm64'
     | '@yafh/image-map-darwin-x64'
-    | '@yafh/image-map-freebsd-arm64'
-    | '@yafh/image-map-freebsd-x64'
-    | '@yafh/image-map-linux-arm'
     | '@yafh/image-map-linux-arm64'
-    | '@yafh/image-map-linux-ia32'
-    | '@yafh/image-map-linux-loong64'
-    | '@yafh/image-map-linux-mips64el'
-    | '@yafh/image-map-linux-ppc64'
-    | '@yafh/image-map-linux-riscv64'
-    | '@yafh/image-map-linux-s390x'
     | '@yafh/image-map-linux-x64'
     | '@yafh/image-map-win32-arm64'
-    | '@yafh/image-map-win32-ia32'
     | '@yafh/image-map-win32-x64'
 
 export function getPlatformPackageName(
@@ -32,32 +22,12 @@ export function getPlatformPackageName(
     return '@yafh/image-map-darwin-arm64'
   if (platform === 'darwin' && arch === 'x64')
     return '@yafh/image-map-darwin-x64'
-  if (platform === 'freebsd' && arch === 'arm64')
-    return '@yafh/image-map-freebsd-arm64'
-  if (platform === 'freebsd' && arch === 'x64')
-    return '@yafh/image-map-freebsd-x64'
-  if (platform === 'linux' && arch === 'arm')
-    return '@yafh/image-map-linux-arm'
   if (platform === 'linux' && arch === 'arm64')
     return '@yafh/image-map-linux-arm64'
-  if (platform === 'linux' && arch === 'ia32')
-    return '@yafh/image-map-linux-ia32'
-  if (platform === 'linux' && arch === 'loong64')
-    return '@yafh/image-map-linux-loong64'
-  if (platform === 'linux' && arch === 'mips64el')
-    return '@yafh/image-map-linux-mips64el'
-  if (platform === 'linux' && arch === 'ppc64')
-    return '@yafh/image-map-linux-ppc64'
-  if (platform === 'linux' && arch === 'riscv64')
-    return '@yafh/image-map-linux-riscv64'
-  if (platform === 'linux' && arch === 's390x')
-    return '@yafh/image-map-linux-s390x'
   if (platform === 'linux' && arch === 'x64')
     return '@yafh/image-map-linux-x64'
   if (platform === 'win32' && arch === 'arm64')
     return '@yafh/image-map-win32-arm64'
-  if (platform === 'win32' && arch === 'ia32')
-    return '@yafh/image-map-win32-ia32'
   if (platform === 'win32' && arch === 'x64')
     return '@yafh/image-map-win32-x64'
 

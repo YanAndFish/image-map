@@ -29,48 +29,8 @@ jobs:
             target: aarch64-unknown-linux-gnu
             bin: image-map
             build: zigbuild
-          - os: ubuntu-latest
-            target: armv7-unknown-linux-gnueabihf
-            bin: image-map
-            build: zigbuild
-          - os: ubuntu-latest
-            target: i686-unknown-linux-gnu
-            bin: image-map
-            build: zigbuild
-          - os: ubuntu-latest
-            target: loongarch64-unknown-linux-gnu
-            bin: image-map
-            build: zigbuild
-          - os: ubuntu-latest
-            target: mips64el-unknown-linux-gnuabi64
-            bin: image-map
-            build: zigbuild
-          - os: ubuntu-latest
-            target: powerpc64le-unknown-linux-gnu
-            bin: image-map
-            build: zigbuild
-          - os: ubuntu-latest
-            target: riscv64gc-unknown-linux-gnu
-            bin: image-map
-            build: zigbuild
-          - os: ubuntu-latest
-            target: s390x-unknown-linux-gnu
-            bin: image-map
-            build: zigbuild
-          - os: ubuntu-latest
-            target: x86_64-unknown-freebsd
-            bin: image-map
-            build: zigbuild
-          - os: ubuntu-latest
-            target: aarch64-unknown-freebsd
-            bin: image-map
-            build: zigbuild
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            bin: image-map.exe
-            build: cargo
-          - os: windows-latest
-            target: i686-pc-windows-msvc
             bin: image-map.exe
             build: cargo
           - os: windows-latest
@@ -150,50 +110,21 @@ jobs:
         run: |
           mkdir -p packages/image-map-darwin-arm64/bin
           mkdir -p packages/image-map-darwin-x64/bin
-          mkdir -p packages/image-map-freebsd-arm64/bin
-          mkdir -p packages/image-map-freebsd-x64/bin
-          mkdir -p packages/image-map-linux-arm/bin
           mkdir -p packages/image-map-linux-arm64/bin
-          mkdir -p packages/image-map-linux-ia32/bin
-          mkdir -p packages/image-map-linux-loong64/bin
-          mkdir -p packages/image-map-linux-mips64el/bin
-          mkdir -p packages/image-map-linux-ppc64/bin
-          mkdir -p packages/image-map-linux-riscv64/bin
-          mkdir -p packages/image-map-linux-s390x/bin
           mkdir -p packages/image-map-linux-x64/bin
           mkdir -p packages/image-map-win32-arm64/bin
-          mkdir -p packages/image-map-win32-ia32/bin
           mkdir -p packages/image-map-win32-x64/bin
 
           cp "artifacts/image-map-aarch64-apple-darwin/image-map" packages/image-map-darwin-arm64/bin/image-map
           cp "artifacts/image-map-x86_64-apple-darwin/image-map" packages/image-map-darwin-x64/bin/image-map
-          cp "artifacts/image-map-aarch64-unknown-freebsd/image-map" packages/image-map-freebsd-arm64/bin/image-map
-          cp "artifacts/image-map-x86_64-unknown-freebsd/image-map" packages/image-map-freebsd-x64/bin/image-map
-          cp "artifacts/image-map-armv7-unknown-linux-gnueabihf/image-map" packages/image-map-linux-arm/bin/image-map
           cp "artifacts/image-map-aarch64-unknown-linux-gnu/image-map" packages/image-map-linux-arm64/bin/image-map
-          cp "artifacts/image-map-i686-unknown-linux-gnu/image-map" packages/image-map-linux-ia32/bin/image-map
-          cp "artifacts/image-map-loongarch64-unknown-linux-gnu/image-map" packages/image-map-linux-loong64/bin/image-map
-          cp "artifacts/image-map-mips64el-unknown-linux-gnuabi64/image-map" packages/image-map-linux-mips64el/bin/image-map
-          cp "artifacts/image-map-powerpc64le-unknown-linux-gnu/image-map" packages/image-map-linux-ppc64/bin/image-map
-          cp "artifacts/image-map-riscv64gc-unknown-linux-gnu/image-map" packages/image-map-linux-riscv64/bin/image-map
-          cp "artifacts/image-map-s390x-unknown-linux-gnu/image-map" packages/image-map-linux-s390x/bin/image-map
           cp "artifacts/image-map-x86_64-unknown-linux-gnu/image-map" packages/image-map-linux-x64/bin/image-map
           cp "artifacts/image-map-aarch64-pc-windows-msvc/image-map.exe" packages/image-map-win32-arm64/bin/image-map.exe
-          cp "artifacts/image-map-i686-pc-windows-msvc/image-map.exe" packages/image-map-win32-ia32/bin/image-map.exe
           cp "artifacts/image-map-x86_64-pc-windows-msvc/image-map.exe" packages/image-map-win32-x64/bin/image-map.exe
 
           chmod +x packages/image-map-darwin-arm64/bin/image-map
           chmod +x packages/image-map-darwin-x64/bin/image-map
-          chmod +x packages/image-map-freebsd-arm64/bin/image-map
-          chmod +x packages/image-map-freebsd-x64/bin/image-map
-          chmod +x packages/image-map-linux-arm/bin/image-map
           chmod +x packages/image-map-linux-arm64/bin/image-map
-          chmod +x packages/image-map-linux-ia32/bin/image-map
-          chmod +x packages/image-map-linux-loong64/bin/image-map
-          chmod +x packages/image-map-linux-mips64el/bin/image-map
-          chmod +x packages/image-map-linux-ppc64/bin/image-map
-          chmod +x packages/image-map-linux-riscv64/bin/image-map
-          chmod +x packages/image-map-linux-s390x/bin/image-map
           chmod +x packages/image-map-linux-x64/bin/image-map
           chmod +x packages/image-map/bin/image-map
 
@@ -206,19 +137,9 @@ jobs:
         run: |
           pnpm -C packages/image-map-darwin-arm64 publish --access public --no-git-checks
           pnpm -C packages/image-map-darwin-x64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-freebsd-arm64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-freebsd-x64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-linux-arm publish --access public --no-git-checks
           pnpm -C packages/image-map-linux-arm64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-linux-ia32 publish --access public --no-git-checks
-          pnpm -C packages/image-map-linux-loong64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-linux-mips64el publish --access public --no-git-checks
-          pnpm -C packages/image-map-linux-ppc64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-linux-riscv64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-linux-s390x publish --access public --no-git-checks
           pnpm -C packages/image-map-linux-x64 publish --access public --no-git-checks
           pnpm -C packages/image-map-win32-arm64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-win32-ia32 publish --access public --no-git-checks
           pnpm -C packages/image-map-win32-x64 publish --access public --no-git-checks
 
       - name: Publish main package
