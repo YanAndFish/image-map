@@ -3,8 +3,8 @@ import type {
   GenerateOptions,
   GenerateResult,
   RequestMessage,
-  ResponseMessage,
   ResizeFilter,
+  ResponseMessage,
 } from './protocol'
 import type { WorkerParams, WorkerProgressMessage, WorkerTask } from './worker-protocol'
 
