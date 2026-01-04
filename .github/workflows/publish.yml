@@ -64,13 +64,13 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          pnpm -C packages/image-map-darwin-arm64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-linux-arm64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-linux-x64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-win32-arm64 publish --access public --no-git-checks
-          pnpm -C packages/image-map-win32-x64 publish --access public --no-git-checks
+          pnpm publish packages/image-map-darwin-arm64 --access public --no-git-checks
+          pnpm publish packages/image-map-linux-arm64 --access public --no-git-checks
+          pnpm publish packages/image-map-linux-x64 --access public --no-git-checks
+          pnpm publish packages/image-map-win32-arm64 --access public --no-git-checks
+          pnpm publish packages/image-map-win32-x64 --access public --no-git-checks
 
       - name: Publish main package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm -C packages/image-map publish --access public --no-git-checks
+        run: pnpm publish packages/image-map --access public --no-git-checks
