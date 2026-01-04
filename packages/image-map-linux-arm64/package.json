@@ -1,6 +1,6 @@
 {
   "name": "@yafh/image-map-linux-arm64",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "image-map binary for linux-arm64",
   "author": "YanAndFish",
   "license": "MIT",
