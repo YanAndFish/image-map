@@ -5,6 +5,15 @@
   "description": "Image tile generator (SDK + CLI)",
   "author": "YanAndFish",
   "license": "MIT",
+  "homepage": "https://github.com/YanAndFish/image-map#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YanAndFish/image-map.git",
+    "directory": "packages/image-map"
+  },
+  "bugs": {
+    "url": "https://github.com/YanAndFish/image-map/issues"
+  },
   "keywords": [
     "image-tile",
     "tile-generator",
