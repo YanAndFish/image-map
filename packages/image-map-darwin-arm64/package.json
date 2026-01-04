@@ -2,6 +2,8 @@
   "name": "@yafh/image-map-darwin-arm64",
   "version": "1.0.1",
   "description": "image-map binary for darwin-arm64",
+  "author": "YanAndFish",
+  "license": "MIT",
   "os": [
     "darwin"
   ],
@@ -10,5 +12,8 @@
   ],
   "files": [
     "bin"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

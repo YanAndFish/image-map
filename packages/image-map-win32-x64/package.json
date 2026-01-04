@@ -2,6 +2,8 @@
   "name": "@yafh/image-map-win32-x64",
   "version": "1.0.1",
   "description": "image-map binary for win32-x64",
+  "author": "YanAndFish",
+  "license": "MIT",
   "os": [
     "win32"
   ],
@@ -10,5 +12,8 @@
   ],
   "files": [
     "bin"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }
