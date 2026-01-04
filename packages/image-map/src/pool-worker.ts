@@ -1,8 +1,10 @@
 import type {
+  DownscaleSharpenOptions,
   GenerateOptions,
   GenerateResult,
   RequestMessage,
   ResponseMessage,
+  ResizeFilter,
 } from './protocol'
 import type { WorkerParams, WorkerProgressMessage, WorkerTask } from './worker-protocol'
 
@@ -207,6 +209,8 @@ function normalizeOptions(params: WorkerParams): GenerateOptions {
   const origin = params.origin ?? 'topLeft'
   const minZoom = params.minZoom ?? 0
   const maxZoom = params.maxZoom ?? 0
+  const resizeFilter = normalizeResizeFilter(params.resizeFilter)
+  const downscaleSharpen = normalizeDownscaleSharpen(params.downscaleSharpen)
 
   if (!Number.isFinite(tileSize) || tileSize <= 0)
     throw new Error('tileSize must be a positive number')
@@ -221,12 +225,75 @@ function normalizeOptions(params: WorkerParams): GenerateOptions {
     throw new Error('minZoom must be <= maxZoom')
 
   return {
+    resizeFilter,
+    downscaleSharpen,
     tileSize,
     formats,
     origin,
     minZoom,
     maxZoom,
   }
+}
+
+/**
+ * Normalize and validate downscale sharpening options.
+ */
+function normalizeDownscaleSharpen(
+  input?: DownscaleSharpenOptions,
+): Required<DownscaleSharpenOptions> {
+  const enabled = input?.enabled ?? true
+  const sigma = input?.sigma ?? 0.5
+  const amount = input?.amount ?? 0.35
+  const threshold = input?.threshold ?? 2
+
+  if (typeof enabled !== 'boolean')
+    throw new Error('downscaleSharpen.enabled must be a boolean')
+
+  if (!Number.isFinite(sigma))
+    throw new Error('downscaleSharpen.sigma must be a finite number')
+
+  if (!Number.isFinite(amount))
+    throw new Error('downscaleSharpen.amount must be a finite number')
+
+  if (!Number.isFinite(threshold) || !Number.isInteger(threshold) || threshold < 0 || threshold > 255) {
+    throw new Error('downscaleSharpen.threshold must be an integer between 0 and 255')
+  }
+
+  if (enabled) {
+    if (sigma <= 0)
+      throw new Error('downscaleSharpen.sigma must be a positive number')
+
+    if (amount < 0)
+      throw new Error('downscaleSharpen.amount must be a non-negative number')
+  }
+
+  return {
+    enabled,
+    sigma,
+    amount,
+    threshold,
+  }
+}
+
+/**
+ * Normalize and validate resize filter inputs.
+ */
+function normalizeResizeFilter(value?: ResizeFilter): ResizeFilter {
+  const filter = value ?? 'catmullRom'
+  const allowed: ResizeFilter[] = [
+    'lanczos3',
+    'catmullRom',
+    'mitchell',
+    'hamming',
+    'bilinear',
+    'box',
+    'gaussian',
+  ]
+
+  if (!allowed.includes(filter))
+    throw new Error(`resizeFilter must be one of: ${allowed.join(', ')}`)
+
+  return filter
 }
 
 /**

@@ -1,4 +1,10 @@
-use crate::protocol::{GenerateOptions, Origin, TileFormat};
+use crate::protocol::{
+  DownscaleSharpenOptions,
+  GenerateOptions,
+  Origin,
+  ResizeFilter,
+  TileFormat,
+};
 
 /// Tile generation configuration.
 #[derive(Debug, Clone)]
@@ -13,6 +19,10 @@ pub struct TileConfig {
   pub min_zoom: u8,
   /// The maximum zoom level to generate.
   pub max_zoom: u8,
+  /// Resize filter for building lower zoom levels.
+  pub resize_filter: ResizeFilter,
+  /// Downscale sharpening configuration.
+  pub downscale_sharpen: DownscaleSharpenOptions,
 }
 
 impl From<&GenerateOptions> for TileConfig {
@@ -23,6 +33,8 @@ impl From<&GenerateOptions> for TileConfig {
       origin: options.origin,
       min_zoom: options.min_zoom,
       max_zoom: options.max_zoom,
+      resize_filter: options.resize_filter,
+      downscale_sharpen: options.downscale_sharpen.clone(),
     }
   }
 }

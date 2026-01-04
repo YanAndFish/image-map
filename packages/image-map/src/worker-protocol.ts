@@ -1,6 +1,11 @@
 import type { MessagePort } from 'node:worker_threads'
 
-import type { Origin, TileFormat } from './protocol'
+import type {
+  DownscaleSharpenOptions,
+  Origin,
+  ResizeFilter,
+  TileFormat,
+} from './protocol'
 
 /**
  * Serialized task params sent to the Tinypool worker.
@@ -12,6 +17,10 @@ export interface WorkerParams {
   output: string
   /** Tile size in pixels. */
   tileSize?: number
+  /** Resize filter for building lower zoom levels. */
+  resizeFilter?: ResizeFilter
+  /** Downscale sharpening configuration. */
+  downscaleSharpen?: DownscaleSharpenOptions
   /** Output formats. */
   formats?: TileFormat[]
   /** Origin position. */

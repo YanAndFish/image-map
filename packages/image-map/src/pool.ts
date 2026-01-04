@@ -1,4 +1,10 @@
-import type { GenerateResult, Origin, TileFormat } from './protocol'
+import type {
+  DownscaleSharpenOptions,
+  GenerateResult,
+  Origin,
+  ResizeFilter,
+  TileFormat,
+} from './protocol'
 import type {
   WorkerParams,
   WorkerProgressMessage,
@@ -21,6 +27,10 @@ export interface GenerateParams {
   output: string
   /** Tile size in pixels. */
   tileSize?: number
+  /** Resize filter for building lower zoom levels. */
+  resizeFilter?: ResizeFilter
+  /** Downscale sharpening configuration. */
+  downscaleSharpen?: DownscaleSharpenOptions
   /** Output formats. */
   formats?: TileFormat[]
   /** Origin position. */

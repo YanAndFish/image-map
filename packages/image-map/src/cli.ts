@@ -1,4 +1,9 @@
-import type { Origin, TileFormat } from './protocol'
+import type {
+  DownscaleSharpenOptions,
+  Origin,
+  ResizeFilter,
+  TileFormat,
+} from './protocol'
 
 import process from 'node:process'
 import { ImageMap } from './index'
@@ -28,6 +33,13 @@ export async function main(argv: string[] = process.argv.slice(2)) {
   const origin = (getStringArg(args, '--origin') ?? 'topLeft') as Origin
   const minZoom = getNumberArg(args, '--min-zoom', 0)
   const maxZoom = getNumberArg(args, '--max-zoom', 0)
+  const resizeFilter = getStringArg(args, '--resize-filter') as ResizeFilter | undefined
+  const downscaleSharpen: DownscaleSharpenOptions = {
+    enabled: getBooleanArg(args, '--downscale-sharpen', true),
+    sigma: getNumberArg(args, '--downscale-sharpen-sigma', 0.5),
+    amount: getNumberArg(args, '--downscale-sharpen-amount', 0.35),
+    threshold: getNumberArg(args, '--downscale-sharpen-threshold', 2),
+  }
 
   const result = await ImageMap.generate({
     input,
@@ -37,6 +49,8 @@ export async function main(argv: string[] = process.argv.slice(2)) {
     origin,
     minZoom,
     maxZoom,
+    resizeFilter,
+    downscaleSharpen,
     onProgress: (current, total, message) => {
       process.stderr.write(`${current}/${total} ${message}\n`)
     },
@@ -81,6 +95,20 @@ function getNumberArg(args: string[], name: string, fallback: number): number {
   return n
 }
 
+/**
+ * Read a boolean argument, accepting true/false or 1/0.
+ */
+function getBooleanArg(args: string[], name: string, fallback: boolean): boolean {
+  const value = getStringArg(args, name)
+  if (value == null)
+    return fallback
+  if (value === 'true' || value === '1')
+    return true
+  if (value === 'false' || value === '0')
+    return false
+  throw new Error(`Invalid boolean for ${name}: ${value}`)
+}
+
 function getMultiStringArg(args: string[], name: string, fallback: string[]): string[] {
   const out: string[] = []
   for (let i = 0; i < args.length; i++) {
@@ -108,6 +136,11 @@ function writeHelp() {
       '  --origin <o>        One of: topLeft | center (default: topLeft)',
       '  --min-zoom <n>      Minimum zoom level (default: 0)',
       '  --max-zoom <n>      Maximum zoom level (default: 0)',
+      '  --resize-filter <f> One of: lanczos3 | catmullRom | mitchell | hamming | bilinear | box | gaussian (default: catmullRom)',
+      '  --downscale-sharpen <bool>        Enable downscale sharpen (default: true)',
+      '  --downscale-sharpen-sigma <n>     Gaussian blur sigma (default: 0.5)',
+      '  --downscale-sharpen-amount <n>    Unsharp amount (default: 0.35)',
+      '  --downscale-sharpen-threshold <n> Threshold 0-255 (default: 2)',
       '  -h, --help          Show this help',
       '',
     ].join('\n'),

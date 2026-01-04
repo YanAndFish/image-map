@@ -110,7 +110,11 @@ pub fn generate_tiles(
 
     // Prepare next zoom level.
     if z < config.max_zoom {
-      level_img = resize::resize_half_and_sharpen(&level_img)?;
+      level_img = resize::resize_half_with_options(
+        &level_img,
+        config.resize_filter,
+        &config.downscale_sharpen,
+      )?;
     }
   }
 
@@ -137,6 +141,18 @@ fn validate_config(config: &TileConfig) -> Result<()> {
     return Err(ImageMapError::InvalidOptions(
       "minZoom must be <= maxZoom".to_string(),
     ));
+  }
+  if config.downscale_sharpen.enabled {
+    if !config.downscale_sharpen.sigma.is_finite() || config.downscale_sharpen.sigma <= 0.0 {
+      return Err(ImageMapError::InvalidOptions(
+        "downscaleSharpen.sigma must be a positive number".to_string(),
+      ));
+    }
+    if !config.downscale_sharpen.amount.is_finite() || config.downscale_sharpen.amount < 0.0 {
+      return Err(ImageMapError::InvalidOptions(
+        "downscaleSharpen.amount must be a non-negative number".to_string(),
+      ));
+    }
   }
 
   Ok(())

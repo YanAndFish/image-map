@@ -3,5 +3,6 @@
 pub mod message;
 
 pub use message::{
-  GenerateOptions, GenerateResult, Origin, RequestMessage, ResponseMessage, TileFormat,
+  DownscaleSharpenOptions, GenerateOptions, GenerateResult, Origin, RequestMessage, ResizeFilter,
+  ResponseMessage, TileFormat,
 };

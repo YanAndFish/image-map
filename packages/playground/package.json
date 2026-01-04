@@ -1,0 +1,12 @@
+{
+  "name": "playground",
+  "private": true,
+  "packageManager": "pnpm@10.26.2",
+  "scripts": {
+    "test": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@yafh/image-map": "workspace:*",
+    "rimraf": "^6.1.2"
+  }
+}
