@@ -33,7 +33,10 @@ pub fn generate_tiles(
 
   fs::create_dir_all(output_dir)?;
 
-  let original = ::image::open(input_path)?.to_rgba8();
+  // Disable decode limits to allow large source images; rely on system memory limits instead.
+  let mut reader = ::image::ImageReader::open(input_path)?;
+  reader.no_limits();
+  let original = reader.decode()?.to_rgba8();
   let total_files = estimate_total_files(original.width(), original.height(), config);
 
   let progress_current = AtomicU64::new(0);
