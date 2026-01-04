@@ -1,7 +1,7 @@
 {
   "name": "@yafh/image-map",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "图片瓦片生成器 (SDK + CLI)",
   "exports": {
     ".": {
