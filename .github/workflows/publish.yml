@@ -55,7 +55,7 @@ jobs:
           chmod +x packages/image-map-darwin-arm64/bin/image-map
           chmod +x packages/image-map-linux-arm64/bin/image-map
           chmod +x packages/image-map-linux-x64/bin/image-map
-          chmod +x packages/image-map/bin/image-map
+          chmod +x packages/image-map/bin/image-map.mjs
 
       - name: Build main package
         run: pnpm -C packages/image-map build
