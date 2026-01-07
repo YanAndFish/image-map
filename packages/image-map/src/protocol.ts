@@ -48,6 +48,58 @@ export interface GenerateResult {
   outputDir: string
 }
 
+/** Resize by percentage of original size. */
+export interface ResizeModePercentage {
+  type: 'percentage'
+  /** Percentage value (e.g., 50 means 50% of original size). */
+  value: number
+}
+
+/** Resize by specifying the long edge in pixels. */
+export interface ResizeModeLongEdge {
+  type: 'longEdge'
+  /** Target long edge size in pixels. */
+  pixels: number
+}
+
+/** Resize by specifying both width and height (fit within, keep aspect ratio). */
+export interface ResizeModeFit {
+  type: 'fit'
+  /** Maximum width in pixels. */
+  width: number
+  /** Maximum height in pixels. */
+  height: number
+}
+
+/** Resize mode specification. */
+export type ResizeMode = ResizeModePercentage | ResizeModeLongEdge | ResizeModeFit
+
+/** Options for resizing an image (without tiling). */
+export interface ResizeImageOptions {
+  /** The resize mode specifying how to calculate output dimensions. */
+  mode: ResizeMode
+  /** Output format for the resized image. */
+  format: TileFormat
+  /** Resize filter for downscaling. */
+  resizeFilter: ResizeFilter
+  /** Sharpening configuration for downscaling. */
+  sharpen: Required<DownscaleSharpenOptions>
+}
+
+/** Result payload for a completed resize request. */
+export interface ResizeResult {
+  /** Output file path. */
+  outputPath: string
+  /** Original image width. */
+  originalWidth: number
+  /** Original image height. */
+  originalHeight: number
+  /** Resized image width. */
+  width: number
+  /** Resized image height. */
+  height: number
+}
+
 export interface GenerateRequestMessage {
   /** Message type. */
   type: 'generate'
@@ -61,7 +113,20 @@ export interface GenerateRequestMessage {
   options: GenerateOptions
 }
 
-export type RequestMessage = GenerateRequestMessage
+export interface ResizeRequestMessage {
+  /** Message type. */
+  type: 'resize'
+  /** Request id for correlating responses. */
+  id: string
+  /** Input image path. */
+  input: string
+  /** Output file path. */
+  output: string
+  /** Resize options. */
+  options: ResizeImageOptions
+}
+
+export type RequestMessage = GenerateRequestMessage | ResizeRequestMessage
 
 export interface ProgressResponseMessage {
   /** Message type. */
@@ -85,6 +150,15 @@ export interface CompleteResponseMessage {
   result: GenerateResult
 }
 
+export interface ResizeCompleteResponseMessage {
+  /** Message type. */
+  type: 'resizeComplete'
+  /** Request id for correlating responses. */
+  id: string
+  /** Resize result payload. */
+  result: ResizeResult
+}
+
 export interface ErrorResponseMessage {
   /** Message type. */
   type: 'error'
@@ -97,4 +171,5 @@ export interface ErrorResponseMessage {
 export type ResponseMessage
   = | ProgressResponseMessage
     | CompleteResponseMessage
+    | ResizeCompleteResponseMessage
     | ErrorResponseMessage

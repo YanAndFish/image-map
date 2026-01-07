@@ -1,10 +1,4 @@
-use crate::protocol::{
-  DownscaleSharpenOptions,
-  GenerateOptions,
-  Origin,
-  ResizeFilter,
-  TileFormat,
-};
+use crate::protocol::{DownscaleSharpenOptions, GenerateOptions, Origin, ResizeFilter, TileFormat};
 
 /// Tile generation configuration.
 #[derive(Debug, Clone)]

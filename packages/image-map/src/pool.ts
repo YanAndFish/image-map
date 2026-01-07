@@ -3,12 +3,16 @@ import type {
   GenerateResult,
   Origin,
   ResizeFilter,
+  ResizeMode,
+  ResizeResult,
   TileFormat,
 } from './protocol'
 import type {
-  WorkerParams,
+  WorkerGenerateParams,
   WorkerProgressMessage,
+  WorkerResizeParams,
   WorkerTask,
+  WorkerTaskParams,
 } from './worker-protocol'
 
 import fs from 'node:fs'
@@ -44,6 +48,26 @@ export interface GenerateParams {
 }
 
 /**
+ * Parameters for resizing an image (without tiling).
+ */
+export interface ResizeParams {
+  /** Input file path. */
+  input: string
+  /** Output file path. */
+  output: string
+  /** Resize mode (percentage, longEdge, or fit). */
+  mode: ResizeMode
+  /** Output format. */
+  format?: TileFormat
+  /** Resize filter for downscaling. */
+  resizeFilter?: ResizeFilter
+  /** Sharpening configuration for downscaling. */
+  sharpen?: DownscaleSharpenOptions
+  /** Progress callback. */
+  onProgress?: (current: number, total: number, message: string) => void
+}
+
+/**
  * Pool configuration options.
  */
 export interface PoolOptions {
@@ -55,10 +79,16 @@ export interface PoolOptions {
  * Image map task pool.
  */
 export interface ImageMapPool {
-  /** Add a task into the queue. */
+  /** Add a generate task into the queue. */
   add: (task: GenerateParams) => void
-  /** Run queued tasks and return ordered results. */
-  run: () => Promise<GenerateResult[]>
+  /** Add a resize task into the queue. */
+  addResize: (task: ResizeParams) => void
+  /** Run queued tasks and return ordered results (GenerateResult or ResizeResult). */
+  run: () => Promise<(GenerateResult | ResizeResult)[]>
+  /** Run queued generate tasks and return ordered results. */
+  runGenerate: () => Promise<GenerateResult[]>
+  /** Run queued resize tasks and return ordered results. */
+  runResize: () => Promise<ResizeResult[]>
 }
 
 /**
@@ -68,12 +98,17 @@ export function createPool(options: PoolOptions = {}): ImageMapPool {
   return new Pool(options)
 }
 
+/** Task type for internal queue management. */
+type QueuedTask
+  = | { type: 'generate', params: GenerateParams }
+    | { type: 'resize', params: ResizeParams }
+
 /**
  * Default implementation backed by Tinypool.
  */
 class Pool implements ImageMapPool {
   private readonly concurrency: number
-  private readonly queue: GenerateParams[] = []
+  private readonly queue: QueuedTask[] = []
 
   /**
    * Create a pool with configured concurrency.
@@ -82,13 +117,18 @@ class Pool implements ImageMapPool {
     this.concurrency = Math.max(1, options.concurrency ?? 1)
   }
 
-  /** Add a task into the pool queue. */
+  /** Add a generate task into the pool queue. */
   add(task: GenerateParams) {
-    this.queue.push(task)
+    this.queue.push({ type: 'generate', params: task })
+  }
+
+  /** Add a resize task into the pool queue. */
+  addResize(task: ResizeParams) {
+    this.queue.push({ type: 'resize', params: task })
   }
 
   /** Execute all queued tasks with a Tinypool worker pool. */
-  async run(): Promise<GenerateResult[]> {
+  async run(): Promise<(GenerateResult | ResizeResult)[]> {
     const tasks = this.queue.splice(0, this.queue.length)
     if (tasks.length === 0)
       return []
@@ -103,7 +143,7 @@ class Pool implements ImageMapPool {
     })
 
     try {
-      const results: GenerateResult[] = Array.from({ length: tasks.length })
+      const results: (GenerateResult | ResizeResult)[] = Array.from({ length: tasks.length })
       await Promise.all(
         tasks.map((task, index) => this.runTask(pool, task, index, results)),
       )
@@ -114,26 +154,42 @@ class Pool implements ImageMapPool {
     }
   }
 
+  /** Execute all queued generate tasks only. */
+  async runGenerate(): Promise<GenerateResult[]> {
+    const generateTasks = this.queue.filter(t => t.type === 'generate')
+    this.queue.length = 0
+    generateTasks.forEach(t => this.queue.push(t))
+    return await this.run() as GenerateResult[]
+  }
+
+  /** Execute all queued resize tasks only. */
+  async runResize(): Promise<ResizeResult[]> {
+    const resizeTasks = this.queue.filter(t => t.type === 'resize')
+    this.queue.length = 0
+    resizeTasks.forEach(t => this.queue.push(t))
+    return await this.run() as ResizeResult[]
+  }
+
   /**
    * Run a single task in Tinypool and store its result.
    */
   private async runTask(
     pool: Tinypool,
-    task: GenerateParams,
+    task: QueuedTask,
     index: number,
-    results: GenerateResult[],
+    results: (GenerateResult | ResizeResult)[],
   ): Promise<void> {
     const payload: WorkerTask = {
       params: toWorkerParams(task),
     }
 
-    if (!task.onProgress) {
+    const onProgress = task.params.onProgress
+    if (!onProgress) {
       results[index] = await pool.run(payload)
       return
     }
 
     const { port1, port2 } = new MessageChannel()
-    const onProgress = task.onProgress
     payload.port = port1
 
     const handleMessage = (message: unknown) => {
@@ -160,9 +216,15 @@ class Pool implements ImageMapPool {
 /**
  * Remove non-serializable fields from params before sending to workers.
  */
-function toWorkerParams(params: GenerateParams): WorkerParams {
-  const { onProgress: _onProgress, ...rest } = params
-  return rest
+function toWorkerParams(task: QueuedTask): WorkerTaskParams {
+  if (task.type === 'generate') {
+    const { onProgress: _onProgress, ...rest } = task.params
+    return { type: 'generate', ...rest } as WorkerGenerateParams
+  }
+  else {
+    const { onProgress: _onProgress, ...rest } = task.params
+    return { type: 'resize', ...rest } as WorkerResizeParams
+  }
 }
 
 /**

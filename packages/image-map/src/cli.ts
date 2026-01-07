@@ -2,6 +2,7 @@ import type {
   DownscaleSharpenOptions,
   Origin,
   ResizeFilter,
+  ResizeMode,
   TileFormat,
 } from './protocol'
 
@@ -16,10 +17,18 @@ export async function main(argv: string[] = process.argv.slice(2)) {
     return
   }
 
-  if (command !== 'generate') {
+  if (command === 'generate') {
+    await runGenerate(args)
+  }
+  else if (command === 'resize') {
+    await runResize(args)
+  }
+  else {
     throw new Error(`Unknown command: ${command}`)
   }
+}
 
+async function runGenerate(args: string[]) {
   const input = getStringArg(args, '--input')
   const output = getStringArg(args, '--output')
 
@@ -59,6 +68,61 @@ export async function main(argv: string[] = process.argv.slice(2)) {
   process.stdout.write(`${JSON.stringify(result)}\n`)
 }
 
+async function runResize(args: string[]) {
+  const input = getStringArg(args, '--input')
+  const output = getStringArg(args, '--output')
+
+  if (!input)
+    throw new Error('Missing required option: --input')
+  if (!output)
+    throw new Error('Missing required option: --output')
+
+  const mode = parseResizeMode(args)
+  const format = (getStringArg(args, '--format') ?? 'webp') as TileFormat
+  const resizeFilter = getStringArg(args, '--resize-filter') as ResizeFilter | undefined
+  const sharpen: DownscaleSharpenOptions = {
+    enabled: getBooleanArg(args, '--sharpen', true),
+    sigma: getNumberArg(args, '--sharpen-sigma', 0.5),
+    amount: getNumberArg(args, '--sharpen-amount', 0.35),
+    threshold: getNumberArg(args, '--sharpen-threshold', 2),
+  }
+
+  const result = await ImageMap.resize({
+    input,
+    output,
+    mode,
+    format,
+    resizeFilter,
+    sharpen,
+    onProgress: (current, total, message) => {
+      process.stderr.write(`${current}/${total} ${message}\n`)
+    },
+  })
+
+  process.stdout.write(`${JSON.stringify(result)}\n`)
+}
+
+function parseResizeMode(args: string[]): ResizeMode {
+  const modeType = getStringArg(args, '--mode') ?? 'percentage'
+
+  if (modeType === 'percentage') {
+    const value = getNumberArg(args, '--value', 50)
+    return { type: 'percentage', value }
+  }
+  else if (modeType === 'longEdge' || modeType === 'long-edge') {
+    const pixels = getNumberArg(args, '--pixels', 1200)
+    return { type: 'longEdge', pixels }
+  }
+  else if (modeType === 'fit') {
+    const width = getNumberArg(args, '--width', 1200)
+    const height = getNumberArg(args, '--height', 1200)
+    return { type: 'fit', width, height }
+  }
+  else {
+    throw new Error(`Invalid resize mode: ${modeType}. Must be one of: percentage, longEdge, fit`)
+  }
+}
+
 function parseCommand(argv: string[]) {
   if (argv.length === 0)
     return { command: null as null | string, args: argv }
@@ -66,6 +130,9 @@ function parseCommand(argv: string[]) {
   const first = argv[0]
   if (first === 'generate' || first === 'gen')
     return { command: 'generate', args: argv.slice(1) }
+
+  if (first === 'resize')
+    return { command: 'resize', args: argv.slice(1) }
 
   if (first === 'help' || first === '--help' || first === '-h')
     return { command: 'help', args: argv.slice(1) }
@@ -125,8 +192,14 @@ function getMultiStringArg(args: string[], name: string, fallback: string[]): st
 function writeHelp() {
   process.stdout.write(
     [
-      'image-map (Rust-powered image tile generator)',
+      'image-map (Rust-powered image tile generator & resizer)',
       '',
+      'Commands:',
+      '  generate  Generate ZXY tiles from an image',
+      '  resize    Resize an image without tiling',
+      '  help      Show this help',
+      '',
+      '=== generate ===',
       'Usage:',
       '  image-map generate --input <file> --output <dir> [options]',
       '',
@@ -141,6 +214,24 @@ function writeHelp() {
       '  --downscale-sharpen-sigma <n>     Gaussian blur sigma (default: 0.5)',
       '  --downscale-sharpen-amount <n>    Unsharp amount (default: 0.35)',
       '  --downscale-sharpen-threshold <n> Threshold 0-255 (default: 2)',
+      '',
+      '=== resize ===',
+      'Usage:',
+      '  image-map resize --input <file> --output <file> [options]',
+      '',
+      'Options:',
+      '  --mode <m>          Resize mode: percentage | longEdge | fit (default: percentage)',
+      '  --value <n>         Percentage value for percentage mode (default: 50)',
+      '  --pixels <n>        Long edge pixels for longEdge mode (default: 1200)',
+      '  --width <n>         Max width for fit mode (default: 1200)',
+      '  --height <n>        Max height for fit mode (default: 1200)',
+      '  --format <fmt>      One of: png | jpg | jpeg | webp (default: webp)',
+      '  --resize-filter <f> One of: lanczos3 | catmullRom | mitchell | hamming | bilinear | box | gaussian (default: catmullRom)',
+      '  --sharpen <bool>    Enable sharpening (default: true)',
+      '  --sharpen-sigma <n> Gaussian blur sigma (default: 0.5)',
+      '  --sharpen-amount <n> Unsharp amount (default: 0.35)',
+      '  --sharpen-threshold <n> Threshold 0-255 (default: 2)',
+      '',
       '  -h, --help          Show this help',
       '',
     ].join('\n'),

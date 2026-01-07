@@ -4,13 +4,16 @@ import type {
   DownscaleSharpenOptions,
   Origin,
   ResizeFilter,
+  ResizeMode,
   TileFormat,
 } from './protocol'
 
 /**
- * Serialized task params sent to the Tinypool worker.
+ * Serialized generate task params sent to the Tinypool worker.
  */
-export interface WorkerParams {
+export interface WorkerGenerateParams {
+  /** Task type. */
+  type: 'generate'
   /** Input file path. */
   input: string
   /** Output directory path. */
@@ -32,11 +35,41 @@ export interface WorkerParams {
 }
 
 /**
+ * Serialized resize task params sent to the Tinypool worker.
+ */
+export interface WorkerResizeParams {
+  /** Task type. */
+  type: 'resize'
+  /** Input file path. */
+  input: string
+  /** Output file path. */
+  output: string
+  /** Resize mode. */
+  mode: ResizeMode
+  /** Output format. */
+  format?: TileFormat
+  /** Resize filter for downscaling. */
+  resizeFilter?: ResizeFilter
+  /** Sharpening configuration for downscaling. */
+  sharpen?: DownscaleSharpenOptions
+}
+
+/**
+ * @deprecated Use WorkerGenerateParams instead.
+ */
+export type WorkerParams = Omit<WorkerGenerateParams, 'type'>
+
+/**
+ * Unified worker params.
+ */
+export type WorkerTaskParams = WorkerGenerateParams | WorkerResizeParams
+
+/**
  * Payload passed into a Tinypool worker task.
  */
 export interface WorkerTask {
   /** Serializable task params. */
-  params: WorkerParams
+  params: WorkerTaskParams
   /** Progress channel for this task. */
   port?: MessagePort
 }

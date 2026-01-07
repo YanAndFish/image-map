@@ -2,6 +2,7 @@
 
 pub mod image;
 pub mod protocol;
+pub mod resize;
 pub mod tile;
 
 use std::fmt;

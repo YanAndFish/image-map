@@ -28,7 +28,7 @@
     }
   },
   "bin": {
-    "image-map": "./bin/image-map"
+    "image-map": "./bin/image-map.mjs"
   },
   "files": [
     "bin",

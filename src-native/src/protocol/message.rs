@@ -16,6 +16,18 @@ pub enum RequestMessage {
     /// Generation options.
     options: GenerateOptions,
   },
+  /// Resize an image (no tiling).
+  #[serde(rename = "resize")]
+  Resize {
+    /// Request id for correlating progress / completion events.
+    id: String,
+    /// Input image path.
+    input: String,
+    /// Output file path.
+    output: String,
+    /// Resize options.
+    options: ResizeOptions,
+  },
 }
 
 /// Response messages (from Rust to Node.js) in NDJSON.
@@ -34,13 +46,21 @@ pub enum ResponseMessage {
     /// Human-readable message.
     message: String,
   },
-  /// Completion event.
+  /// Completion event (for tile generation).
   #[serde(rename = "complete")]
   Complete {
     /// Request id for correlating progress / completion events.
     id: String,
     /// Result payload.
     result: GenerateResult,
+  },
+  /// Resize completion event.
+  #[serde(rename = "resizeComplete")]
+  ResizeComplete {
+    /// Request id for correlating progress / completion events.
+    id: String,
+    /// Result payload.
+    result: ResizeResult,
   },
   /// Error event.
   #[serde(rename = "error")]
@@ -187,4 +207,62 @@ pub struct GenerateResult {
   pub tiles_generated: u64,
   /// Output directory.
   pub output_dir: String,
+}
+
+/// Resize mode specification.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum ResizeMode {
+  /// Resize by percentage (0-100 means shrink, >100 means enlarge).
+  #[serde(rename = "percentage")]
+  Percentage {
+    /// Percentage value (e.g., 50 means 50% of original size).
+    value: f64,
+  },
+  /// Resize by specifying the long edge in pixels.
+  #[serde(rename = "longEdge")]
+  LongEdge {
+    /// Target long edge size in pixels.
+    pixels: u32,
+  },
+  /// Resize by specifying both width and height (fit within, keep aspect ratio).
+  #[serde(rename = "fit")]
+  Fit {
+    /// Maximum width in pixels.
+    width: u32,
+    /// Maximum height in pixels.
+    height: u32,
+  },
+}
+
+/// Options for resizing an image (without tiling).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResizeOptions {
+  /// The resize mode specifying how to calculate output dimensions.
+  pub mode: ResizeMode,
+  /// Output format for the resized image.
+  pub format: TileFormat,
+  /// Resize filter for downscaling.
+  #[serde(default)]
+  pub resize_filter: ResizeFilter,
+  /// Sharpening configuration for downscaling.
+  #[serde(default)]
+  pub sharpen: DownscaleSharpenOptions,
+}
+
+/// Result payload for a completed resize request.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResizeResult {
+  /// Output file path.
+  pub output_path: String,
+  /// Original image width.
+  pub original_width: u32,
+  /// Original image height.
+  pub original_height: u32,
+  /// Resized image width.
+  pub width: u32,
+  /// Resized image height.
+  pub height: u32,
 }

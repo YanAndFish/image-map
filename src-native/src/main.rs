@@ -4,7 +4,11 @@ use std::sync::{Arc, Mutex};
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use image_map::protocol::{RequestMessage, ResponseMessage};
+use image_map::protocol::{
+  DownscaleSharpenOptions as ProtoDownscaleSharpen, RequestMessage, ResizeMode, ResizeOptions,
+  ResponseMessage,
+};
+use image_map::resize::resize_image;
 use image_map::tile::{ProgressEvent, TileConfig, generate_tiles};
 
 #[derive(Debug, Parser)]
@@ -24,6 +28,8 @@ enum Command {
   Stdio,
   /// Generate tiles directly (no protocol).
   Generate(GenerateCliArgs),
+  /// Resize an image (no tiling).
+  Resize(ResizeCliArgs),
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -48,6 +54,15 @@ enum CliResizeFilter {
   Bilinear,
   Box,
   Gaussian,
+}
+
+/// Resize mode for the resize command.
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum CliResizeMode {
+  /// Resize by percentage of original size.
+  Percentage,
+  /// Resize by specifying the long edge in pixels.
+  LongEdge,
 }
 
 #[derive(Debug, Args)]
@@ -90,12 +105,47 @@ struct GenerateCliArgs {
   downscale_sharpen_threshold: u8,
 }
 
+#[derive(Debug, Args)]
+struct ResizeCliArgs {
+  /// Input image path.
+  #[arg(long)]
+  input: String,
+  /// Output file path.
+  #[arg(long)]
+  output: String,
+  /// Resize mode.
+  #[arg(long, value_enum, default_value = "percentage")]
+  mode: CliResizeMode,
+  /// Value for the resize mode (percentage or long edge pixels).
+  #[arg(long, default_value_t = 50.0)]
+  value: f64,
+  /// Output format.
+  #[arg(long = "format", value_enum, default_value = "webp")]
+  format: CliFormat,
+  /// Resize filter for downscaling.
+  #[arg(long, value_enum, default_value = "catmull-rom")]
+  resize_filter: CliResizeFilter,
+  /// Enable sharpening (for downscaling).
+  #[arg(long, default_value_t = true)]
+  sharpen: bool,
+  /// Gaussian blur sigma for sharpening.
+  #[arg(long, default_value_t = 0.5)]
+  sharpen_sigma: f32,
+  /// Unsharp amount for sharpening.
+  #[arg(long, default_value_t = 0.35)]
+  sharpen_amount: f32,
+  /// Threshold for sharpening (0-255).
+  #[arg(long, default_value_t = 2)]
+  sharpen_threshold: u8,
+}
+
 fn main() -> Result<(), image_map::ImageMapError> {
   let cli = Cli::parse();
 
   match cli.command.unwrap_or(Command::Stdio) {
     Command::Stdio => run_stdio_protocol(),
     Command::Generate(args) => run_generate(args),
+    Command::Resize(args) => run_resize(args),
   }
 }
 
@@ -107,7 +157,7 @@ fn run_generate(args: GenerateCliArgs) -> Result<(), image_map::ImageMapError> {
     min_zoom: args.min_zoom,
     max_zoom: args.max_zoom,
     resize_filter: into_resize_filter(args.resize_filter),
-    downscale_sharpen: image_map::protocol::DownscaleSharpenOptions {
+    downscale_sharpen: ProtoDownscaleSharpen {
       enabled: args.downscale_sharpen,
       sigma: args.downscale_sharpen_sigma,
       amount: args.downscale_sharpen_amount,
@@ -123,6 +173,41 @@ fn run_generate(args: GenerateCliArgs) -> Result<(), image_map::ImageMapError> {
     Path::new(&args.input),
     Path::new(&args.output),
     &config,
+    Some(progress),
+  )?;
+
+  println!("{}", serde_json::to_string(&result)?);
+  Ok(())
+}
+
+fn run_resize(args: ResizeCliArgs) -> Result<(), image_map::ImageMapError> {
+  let mode = match args.mode {
+    CliResizeMode::Percentage => ResizeMode::Percentage { value: args.value },
+    CliResizeMode::LongEdge => ResizeMode::LongEdge {
+      pixels: args.value as u32,
+    },
+  };
+
+  let options = ResizeOptions {
+    mode,
+    format: into_format(args.format),
+    resize_filter: into_resize_filter(args.resize_filter),
+    sharpen: ProtoDownscaleSharpen {
+      enabled: args.sharpen,
+      sigma: args.sharpen_sigma,
+      amount: args.sharpen_amount,
+      threshold: args.sharpen_threshold,
+    },
+  };
+
+  let progress = Arc::new(move |ev: ProgressEvent| {
+    eprintln!("{}/{} {}", ev.current, ev.total, ev.message);
+  });
+
+  let result = resize_image(
+    Path::new(&args.input),
+    Path::new(&args.output),
+    &options,
     Some(progress),
   )?;
 
@@ -159,6 +244,33 @@ fn run_stdio_protocol() -> Result<(), image_map::ImageMapError> {
         ) {
           Ok(result) => {
             write_message(&stdout, &ResponseMessage::Complete { id, result })?;
+          }
+          Err(e) => {
+            write_message(
+              &stdout,
+              &ResponseMessage::Error {
+                id,
+                error: e.to_string(),
+              },
+            )?;
+          }
+        }
+      }
+      Ok(RequestMessage::Resize {
+        id,
+        input,
+        output,
+        options,
+      }) => {
+        let progress = make_progress_writer(stdout.clone(), id.clone());
+        match resize_image(
+          Path::new(&input),
+          Path::new(&output),
+          &options,
+          Some(progress),
+        ) {
+          Ok(result) => {
+            write_message(&stdout, &ResponseMessage::ResizeComplete { id, result })?;
           }
           Err(e) => {
             write_message(

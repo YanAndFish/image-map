@@ -4,5 +4,5 @@ pub mod message;
 
 pub use message::{
   DownscaleSharpenOptions, GenerateOptions, GenerateResult, Origin, RequestMessage, ResizeFilter,
-  ResponseMessage, TileFormat,
+  ResizeMode, ResizeOptions, ResizeResult, ResponseMessage, TileFormat,
 };

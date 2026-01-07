@@ -3,12 +3,87 @@ use fir::images::Image;
 
 use ::image::{Rgba, RgbaImage};
 
-use crate::protocol::{DownscaleSharpenOptions, ResizeFilter};
+use crate::protocol::{DownscaleSharpenOptions, ResizeFilter, ResizeMode};
 use crate::{ImageMapError, Result};
 
 /// Resize an RGBA8 image to a specific size using Lanczos3.
 pub fn resize_rgba8(image: &RgbaImage, new_width: u32, new_height: u32) -> Result<RgbaImage> {
   resize_rgba8_with_filter(image, new_width, new_height, fir::FilterType::Lanczos3)
+}
+
+/// Calculate target dimensions based on resize mode, preserving aspect ratio.
+pub fn calculate_target_dimensions(
+  original_width: u32,
+  original_height: u32,
+  mode: &ResizeMode,
+) -> Result<(u32, u32)> {
+  match mode {
+    ResizeMode::Percentage { value } => {
+      if *value <= 0.0 {
+        return Err(ImageMapError::InvalidOptions(
+          "percentage must be greater than 0".to_string(),
+        ));
+      }
+      let scale = value / 100.0;
+      let new_width = ((original_width as f64) * scale).round() as u32;
+      let new_height = ((original_height as f64) * scale).round() as u32;
+      Ok((new_width.max(1), new_height.max(1)))
+    }
+    ResizeMode::LongEdge { pixels } => {
+      if *pixels == 0 {
+        return Err(ImageMapError::InvalidOptions(
+          "longEdge pixels must be greater than 0".to_string(),
+        ));
+      }
+      let long_edge = original_width.max(original_height);
+      if long_edge == 0 {
+        return Err(ImageMapError::InvalidOptions(
+          "input image has zero dimensions".to_string(),
+        ));
+      }
+      let scale = *pixels as f64 / long_edge as f64;
+      let new_width = ((original_width as f64) * scale).round() as u32;
+      let new_height = ((original_height as f64) * scale).round() as u32;
+      Ok((new_width.max(1), new_height.max(1)))
+    }
+    ResizeMode::Fit { width, height } => {
+      if *width == 0 || *height == 0 {
+        return Err(ImageMapError::InvalidOptions(
+          "fit width and height must be greater than 0".to_string(),
+        ));
+      }
+      let scale_w = *width as f64 / original_width as f64;
+      let scale_h = *height as f64 / original_height as f64;
+      let scale = scale_w.min(scale_h);
+      let new_width = ((original_width as f64) * scale).round() as u32;
+      let new_height = ((original_height as f64) * scale).round() as u32;
+      Ok((new_width.max(1), new_height.max(1)))
+    }
+  }
+}
+
+/// Resize an RGBA8 image with configurable filter and optional sharpening.
+pub fn resize_with_options(
+  image: &RgbaImage,
+  new_width: u32,
+  new_height: u32,
+  filter: ResizeFilter,
+  sharpen: &DownscaleSharpenOptions,
+) -> Result<RgbaImage> {
+  let resized = resize_rgba8_with_filter(image, new_width, new_height, to_fir_filter(filter))?;
+
+  // Apply sharpening only when downscaling.
+  let is_downscaling = new_width < image.width() || new_height < image.height();
+  if !is_downscaling || !sharpen.enabled || sharpen.amount <= 0.0 || sharpen.sigma <= 0.0 {
+    return Ok(resized);
+  }
+
+  Ok(unsharp_rgba8(
+    &resized,
+    sharpen.sigma,
+    sharpen.amount,
+    sharpen.threshold,
+  ))
 }
 
 /// Resize an RGBA8 image to 50% (half) using default downscale settings.

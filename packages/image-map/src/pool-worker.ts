@@ -4,9 +4,17 @@ import type {
   GenerateResult,
   RequestMessage,
   ResizeFilter,
+  ResizeImageOptions,
+  ResizeResult,
   ResponseMessage,
+  TileFormat,
 } from './protocol'
-import type { WorkerParams, WorkerProgressMessage, WorkerTask } from './worker-protocol'
+import type {
+  WorkerGenerateParams,
+  WorkerProgressMessage,
+  WorkerResizeParams,
+  WorkerTask,
+} from './worker-protocol'
 
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -16,14 +24,19 @@ import { nanoid } from 'nanoid'
 
 import { resolveBinaryPath } from './binary'
 
+/** Union result type for generate/resize tasks. */
+type TaskResult = GenerateResult | ResizeResult
+
 /**
  * Internal tracking for an in-flight task.
  */
 interface PendingTask {
+  /** Task type for resolving the correct response type. */
+  taskType: 'generate' | 'resize'
   /** Progress channel for this task. */
   port?: WorkerTask['port']
   /** Resolve callback. */
-  resolve: (result: GenerateResult) => void
+  resolve: (result: TaskResult) => void
   /** Reject callback. */
   reject: (error: Error) => void
 }
@@ -69,8 +82,21 @@ class ImageMapWorker {
   /**
    * Enqueue a generate request on the underlying binary.
    */
-  generate(params: WorkerParams, port?: WorkerTask['port']): Promise<GenerateResult> {
+  generate(params: Omit<WorkerGenerateParams, 'type'>, port?: WorkerTask['port']): Promise<GenerateResult> {
     const task = this.last.then(() => this.generateImpl(params, port))
+    // Keep the queue alive even if a task fails.
+    this.last = task.then(
+      () => undefined,
+      () => undefined,
+    )
+    return task
+  }
+
+  /**
+   * Enqueue a resize request on the underlying binary.
+   */
+  resize(params: Omit<WorkerResizeParams, 'type'>, port?: WorkerTask['port']): Promise<ResizeResult> {
+    const task = this.last.then(() => this.resizeImpl(params, port))
     // Keep the queue alive even if a task fails.
     this.last = task.then(
       () => undefined,
@@ -104,7 +130,7 @@ class ImageMapWorker {
   /**
    * Send a generate request to the Rust binary and await the response.
    */
-  private generateImpl(params: WorkerParams, port?: WorkerTask['port']): Promise<GenerateResult> {
+  private generateImpl(params: Omit<WorkerGenerateParams, 'type'>, port?: WorkerTask['port']): Promise<GenerateResult> {
     if (this.disposed)
       return Promise.reject(new Error('image-map worker is disposed'))
 
@@ -114,13 +140,48 @@ class ImageMapWorker {
       id,
       input: params.input,
       output: params.output,
-      options: normalizeOptions(params),
+      options: normalizeGenerateOptions(params),
     }
 
     return new Promise<GenerateResult>((resolve, reject) => {
       this.pending.set(id, {
+        taskType: 'generate',
         port,
-        resolve,
+        resolve: resolve as (result: TaskResult) => void,
+        reject,
+      })
+
+      const line = `${JSON.stringify(request)}\n`
+      this.child.stdin.write(line, (err) => {
+        if (!err)
+          return
+        this.pending.delete(id)
+        reject(err instanceof Error ? err : new Error(String(err)))
+      })
+    })
+  }
+
+  /**
+   * Send a resize request to the Rust binary and await the response.
+   */
+  private resizeImpl(params: Omit<WorkerResizeParams, 'type'>, port?: WorkerTask['port']): Promise<ResizeResult> {
+    if (this.disposed)
+      return Promise.reject(new Error('image-map worker is disposed'))
+
+    const id = nanoid()
+    const request: RequestMessage = {
+      type: 'resize',
+      id,
+      input: params.input,
+      output: params.output,
+      options: normalizeResizeOptions(params),
+    }
+
+    return new Promise<ResizeResult>((resolve, reject) => {
+      this.pending.set(id, {
+        taskType: 'resize',
+        port,
+        resolve: resolve as (result: TaskResult) => void,
         reject,
       })
 
@@ -173,6 +234,11 @@ class ImageMapWorker {
       return
     }
 
+    if (msg.type === 'resizeComplete') {
+      pending.resolve(msg.result)
+      return
+    }
+
     if (msg.type === 'error') {
       pending.reject(new Error(msg.error))
     }
@@ -184,9 +250,15 @@ const worker = new ImageMapWorker()
 /**
  * Tinypool entry point. Runs a single task inside the worker.
  */
-export default async function run(task: WorkerTask): Promise<GenerateResult> {
+export default async function run(task: WorkerTask): Promise<TaskResult> {
   try {
-    return await worker.generate(task.params, task.port)
+    const params = task.params
+    if ('type' in params && params.type === 'resize') {
+      return await worker.resize(params, task.port)
+    }
+    // Default to generate (for backwards compatibility with WorkerParams without type)
+    const generateParams = params as Omit<WorkerGenerateParams, 'type'>
+    return await worker.generate(generateParams, task.port)
   }
   finally {
     task.port?.close()
@@ -201,9 +273,9 @@ export async function teardown(): Promise<void> {
 }
 
 /**
- * Normalize options for the Rust binary.
+ * Normalize generate options for the Rust binary.
  */
-function normalizeOptions(params: WorkerParams): GenerateOptions {
+function normalizeGenerateOptions(params: Omit<WorkerGenerateParams, 'type'>): GenerateOptions {
   const tileSize = params.tileSize ?? 256
   const formats = params.formats ?? ['webp']
   const origin = params.origin ?? 'topLeft'
@@ -294,6 +366,58 @@ function normalizeResizeFilter(value?: ResizeFilter): ResizeFilter {
     throw new Error(`resizeFilter must be one of: ${allowed.join(', ')}`)
 
   return filter
+}
+
+/**
+ * Normalize and validate image format inputs.
+ */
+function normalizeFormat(value?: TileFormat): TileFormat {
+  const format = value ?? 'webp'
+  const allowed: TileFormat[] = ['png', 'jpg', 'jpeg', 'webp']
+
+  if (!allowed.includes(format))
+    throw new Error(`format must be one of: ${allowed.join(', ')}`)
+
+  return format
+}
+
+/**
+ * Normalize resize options for the Rust binary.
+ */
+function normalizeResizeOptions(params: Omit<WorkerResizeParams, 'type'>): ResizeImageOptions {
+  const mode = params.mode
+  const format = normalizeFormat(params.format)
+  const resizeFilter = normalizeResizeFilter(params.resizeFilter)
+  const sharpen = normalizeDownscaleSharpen(params.sharpen)
+
+  // Validate mode
+  if (!mode || typeof mode !== 'object' || !('type' in mode))
+    throw new Error('mode must be a valid resize mode object')
+
+  if (mode.type === 'percentage') {
+    if (typeof mode.value !== 'number' || !Number.isFinite(mode.value) || mode.value <= 0)
+      throw new Error('mode.value must be a positive number for percentage mode')
+  }
+  else if (mode.type === 'longEdge') {
+    if (typeof mode.pixels !== 'number' || !Number.isInteger(mode.pixels) || mode.pixels <= 0)
+      throw new Error('mode.pixels must be a positive integer for longEdge mode')
+  }
+  else if (mode.type === 'fit') {
+    if (typeof mode.width !== 'number' || !Number.isInteger(mode.width) || mode.width <= 0)
+      throw new Error('mode.width must be a positive integer for fit mode')
+    if (typeof mode.height !== 'number' || !Number.isInteger(mode.height) || mode.height <= 0)
+      throw new Error('mode.height must be a positive integer for fit mode')
+  }
+  else {
+    throw new Error('mode.type must be one of: percentage, longEdge, fit')
+  }
+
+  return {
+    mode,
+    format,
+    resizeFilter,
+    sharpen,
+  }
 }
 
 /**

@@ -5,6 +5,7 @@ import process from 'node:process'
 import { main } from '../dist/cli.mjs'
 
 try {
+  // eslint-disable-next-line antfu/no-top-level-await
   await main(process.argv.slice(2))
 }
 catch (err) {
@@ -14,5 +15,3 @@ catch (err) {
   process.stderr.write(`${message}\n`)
   process.exit(1)
 }
-
-
