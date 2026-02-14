@@ -39,18 +39,18 @@ export function resolveBinaryPath(): string {
         `IMAGE_MAP_BINARY_PATH points to a non-existent file: ${envBinary}`,
       )
     }
-    return envBinary
+    return ensureExecutableIfNeeded(envBinary)
   }
 
   const platformPkg = getPlatformPackageName()
 
   const fromPlatformPackage = tryResolveFromPlatformPackage(platformPkg)
   if (fromPlatformPackage)
-    return fromPlatformPackage
+    return ensureExecutableIfNeeded(fromPlatformPackage)
 
   const fromMonorepo = tryResolveFromMonorepoBuild()
   if (fromMonorepo)
-    return fromMonorepo
+    return ensureExecutableIfNeeded(fromMonorepo)
 
   throw new Error(
     [
@@ -59,6 +59,35 @@ export function resolveBinaryPath(): string {
       `If you are developing locally, set IMAGE_MAP_BINARY_PATH to your built Rust binary.`,
     ].join('\n'),
   )
+}
+
+/**
+ * Ensure the native binary has executable permission on POSIX platforms.
+ * Some package managers may strip executable bits during install.
+ */
+function ensureExecutableIfNeeded(binaryPath: string): string {
+  if (process.platform === 'win32')
+    return binaryPath
+
+  try {
+    fs.accessSync(binaryPath, fs.constants.X_OK)
+    return binaryPath
+  }
+  catch {}
+
+  try {
+    const stat = fs.statSync(binaryPath)
+    const modeWithExecute = stat.mode | 0o111
+    fs.chmodSync(binaryPath, modeWithExecute)
+    fs.accessSync(binaryPath, fs.constants.X_OK)
+    return binaryPath
+  }
+  catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    throw new Error(
+      `Binary is not executable: ${binaryPath}. Tried to auto-fix permissions but failed: ${reason}`,
+    )
+  }
 }
 
 function tryResolveFromPlatformPackage(pkgName: SupportedPlatformPackage): string | null {

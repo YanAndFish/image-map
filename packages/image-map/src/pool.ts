@@ -154,6 +154,7 @@ class Pool implements ImageMapPool {
       return results
     }
     finally {
+      patchTinypoolDestroyCompatibility(pool)
       await pool.destroy()
     }
   }
@@ -262,4 +263,32 @@ function isWorkerProgressMessage(value: unknown): value is WorkerProgressMessage
     && typeof msg.total === 'number'
     && typeof msg.message === 'string'
   )
+}
+
+/**
+ * Patch Tinypool worker wrappers so Node's events.once() can safely unsubscribe.
+ *
+ * Tinypool v2 worker wrapper objects expose `on()` but do not expose
+ * `removeListener()`. Node's `once()` helper requires `removeListener()`
+ * internally and throws a TypeError while destroying the pool.
+ */
+function patchTinypoolDestroyCompatibility(pool: Tinypool) {
+  const workers = (pool as unknown as { threads?: unknown[] }).threads
+  if (!Array.isArray(workers))
+    return
+
+  for (const worker of workers) {
+    const emitter = worker as {
+      on?: (event: string, listener: (...args: unknown[]) => void) => unknown
+      removeListener?: (event: string, listener: (...args: unknown[]) => void) => unknown
+    }
+
+    if (typeof emitter.on !== 'function')
+      continue
+
+    if (typeof emitter.removeListener === 'function')
+      continue
+
+    emitter.removeListener = () => emitter
+  }
 }
