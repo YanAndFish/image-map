@@ -14,6 +14,8 @@ pnpm add @yafh/image-map
 image-map generate --input <file> --output <dir> [options]
 ```
 
+默认会根据 EXIF 方向元数据自动校准输入图像方向，输出像素方向已校准。
+
 常用选项：
 
 - `--tile-size <n>`：瓦片尺寸，默认 `256`。
@@ -21,6 +23,7 @@ image-map generate --input <file> --output <dir> [options]
 - `--origin <o>`：`topLeft | center`，默认 `topLeft`。
 - `--min-zoom <n>`：最小缩放级别，默认 `0`。
 - `--max-zoom <n>`：最大缩放级别，默认 `0`。
+- `--auto-orient <bool>`：是否按 EXIF 自动校准方向，默认 `true`。
 - `-h, --help`：显示帮助。
 
 ## SDK
@@ -36,6 +39,8 @@ const result = await ImageMap.generate({
   origin: 'topLeft',
   minZoom: 0,
   maxZoom: 4,
+  // 默认 true：按 EXIF 自动校准输入方向
+  autoOrient: true,
 })
 
 console.log(result)

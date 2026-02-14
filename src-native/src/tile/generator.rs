@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use ::image::{Rgba, RgbaImage};
 use rayon::prelude::*;
 
-use crate::image::{encoder, resize};
+use crate::image::{decoder, encoder, resize};
 use crate::protocol::{GenerateResult, Origin};
 use crate::tile::config::TileConfig;
 use crate::{ImageMapError, Result};
@@ -33,10 +33,7 @@ pub fn generate_tiles(
 
   fs::create_dir_all(output_dir)?;
 
-  // Disable decode limits to allow large source images; rely on system memory limits instead.
-  let mut reader = ::image::ImageReader::open(input_path)?;
-  reader.no_limits();
-  let original = reader.decode()?.to_rgba8();
+  let original = decoder::decode_rgba8(input_path, config.auto_orient)?;
   let total_files = estimate_total_files(original.width(), original.height(), config);
 
   let progress_current = AtomicU64::new(0);

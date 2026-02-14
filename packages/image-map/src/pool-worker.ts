@@ -281,6 +281,7 @@ function normalizeGenerateOptions(params: Omit<WorkerGenerateParams, 'type'>): G
   const origin = params.origin ?? 'topLeft'
   const minZoom = params.minZoom ?? 0
   const maxZoom = params.maxZoom ?? 0
+  const autoOrient = normalizeAutoOrient(params.autoOrient)
   const resizeFilter = normalizeResizeFilter(params.resizeFilter)
   const downscaleSharpen = normalizeDownscaleSharpen(params.downscaleSharpen)
 
@@ -297,6 +298,7 @@ function normalizeGenerateOptions(params: Omit<WorkerGenerateParams, 'type'>): G
     throw new Error('minZoom must be <= maxZoom')
 
   return {
+    autoOrient,
     resizeFilter,
     downscaleSharpen,
     tileSize,
@@ -305,6 +307,19 @@ function normalizeGenerateOptions(params: Omit<WorkerGenerateParams, 'type'>): G
     minZoom,
     maxZoom,
   }
+}
+
+/**
+ * Normalize and validate auto-orient option.
+ */
+function normalizeAutoOrient(value?: boolean): boolean {
+  if (value == null)
+    return true
+
+  if (typeof value !== 'boolean')
+    throw new Error('autoOrient must be a boolean')
+
+  return value
 }
 
 /**
@@ -387,6 +402,7 @@ function normalizeFormat(value?: TileFormat): TileFormat {
 function normalizeResizeOptions(params: Omit<WorkerResizeParams, 'type'>): ResizeImageOptions {
   const mode = params.mode
   const format = normalizeFormat(params.format)
+  const autoOrient = normalizeAutoOrient(params.autoOrient)
   const resizeFilter = normalizeResizeFilter(params.resizeFilter)
   const sharpen = normalizeDownscaleSharpen(params.sharpen)
 
@@ -415,6 +431,7 @@ function normalizeResizeOptions(params: Omit<WorkerResizeParams, 'type'>): Resiz
   return {
     mode,
     format,
+    autoOrient,
     resizeFilter,
     sharpen,
   }

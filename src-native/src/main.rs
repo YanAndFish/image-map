@@ -88,6 +88,9 @@ struct GenerateCliArgs {
   /// Maximum zoom level.
   #[arg(long, default_value_t = 0)]
   max_zoom: u8,
+  /// Auto-orient input image pixels using EXIF orientation metadata.
+  #[arg(long, default_value_t = true)]
+  auto_orient: bool,
   /// Resize filter for downscaling between zoom levels.
   #[arg(long, value_enum, default_value = "catmull-rom")]
   resize_filter: CliResizeFilter,
@@ -122,6 +125,9 @@ struct ResizeCliArgs {
   /// Output format.
   #[arg(long = "format", value_enum, default_value = "webp")]
   format: CliFormat,
+  /// Auto-orient input image pixels using EXIF orientation metadata.
+  #[arg(long, default_value_t = true)]
+  auto_orient: bool,
   /// Resize filter for downscaling.
   #[arg(long, value_enum, default_value = "catmull-rom")]
   resize_filter: CliResizeFilter,
@@ -156,6 +162,7 @@ fn run_generate(args: GenerateCliArgs) -> Result<(), image_map::ImageMapError> {
     origin: into_origin(args.origin),
     min_zoom: args.min_zoom,
     max_zoom: args.max_zoom,
+    auto_orient: args.auto_orient,
     resize_filter: into_resize_filter(args.resize_filter),
     downscale_sharpen: ProtoDownscaleSharpen {
       enabled: args.downscale_sharpen,
@@ -191,6 +198,7 @@ fn run_resize(args: ResizeCliArgs) -> Result<(), image_map::ImageMapError> {
   let options = ResizeOptions {
     mode,
     format: into_format(args.format),
+    auto_orient: args.auto_orient,
     resize_filter: into_resize_filter(args.resize_filter),
     sharpen: ProtoDownscaleSharpen {
       enabled: args.sharpen,

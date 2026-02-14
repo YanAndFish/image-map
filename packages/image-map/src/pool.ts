@@ -43,6 +43,8 @@ export interface GenerateParams {
   minZoom?: number
   /** Maximum zoom level. */
   maxZoom?: number
+  /** Whether to auto-orient input image pixels using EXIF orientation metadata. */
+  autoOrient?: boolean
   /** Progress callback. */
   onProgress?: (current: number, total: number, message: string) => void
 }
@@ -59,6 +61,8 @@ export interface ResizeParams {
   mode: ResizeMode
   /** Output format. */
   format?: TileFormat
+  /** Whether to auto-orient input image pixels using EXIF orientation metadata. */
+  autoOrient?: boolean
   /** Resize filter for downscaling. */
   resizeFilter?: ResizeFilter
   /** Sharpening configuration for downscaling. */

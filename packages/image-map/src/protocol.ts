@@ -25,6 +25,8 @@ export interface DownscaleSharpenOptions {
 }
 
 export interface GenerateOptions {
+  /** Whether to auto-orient input image pixels using EXIF orientation metadata. */
+  autoOrient: boolean
   /** Resize filter for building lower zoom levels. */
   resizeFilter: ResizeFilter
   /** Downscale sharpening configuration. */
@@ -80,6 +82,8 @@ export interface ResizeImageOptions {
   mode: ResizeMode
   /** Output format for the resized image. */
   format: TileFormat
+  /** Whether to auto-orient input image pixels using EXIF orientation metadata. */
+  autoOrient: boolean
   /** Resize filter for downscaling. */
   resizeFilter: ResizeFilter
   /** Sharpening configuration for downscaling. */
@@ -90,9 +94,9 @@ export interface ResizeImageOptions {
 export interface ResizeResult {
   /** Output file path. */
   outputPath: string
-  /** Original image width. */
+  /** Input image width after EXIF auto-orientation (if enabled). */
   originalWidth: number
-  /** Original image height. */
+  /** Input image height after EXIF auto-orientation (if enabled). */
   originalHeight: number
   /** Resized image width. */
   width: number

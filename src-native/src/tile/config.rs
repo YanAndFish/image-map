@@ -13,6 +13,8 @@ pub struct TileConfig {
   pub min_zoom: u8,
   /// The maximum zoom level to generate.
   pub max_zoom: u8,
+  /// Whether to auto-orient input image pixels using EXIF orientation metadata.
+  pub auto_orient: bool,
   /// Resize filter for building lower zoom levels.
   pub resize_filter: ResizeFilter,
   /// Downscale sharpening configuration.
@@ -27,6 +29,7 @@ impl From<&GenerateOptions> for TileConfig {
       origin: options.origin,
       min_zoom: options.min_zoom,
       max_zoom: options.max_zoom,
+      auto_orient: options.auto_orient,
       resize_filter: options.resize_filter,
       downscale_sharpen: options.downscale_sharpen.clone(),
     }

@@ -20,6 +20,8 @@ pnpm add @yafh/image-map
 image-map generate --input <file> --output <dir> [options]
 ```
 
+默认会根据 EXIF 方向元数据自动校准输入图像方向，输出像素方向已校准。
+
 常用选项：
 
 - `--tile-size <n>`：瓦片尺寸，默认 `256`。
@@ -27,6 +29,7 @@ image-map generate --input <file> --output <dir> [options]
 - `--origin <o>`：`topLeft | center`，默认 `topLeft`。
 - `--min-zoom <n>`：最小缩放级别，默认 `0`。
 - `--max-zoom <n>`：最大缩放级别，默认 `0`。
+- `--auto-orient <bool>`：是否按 EXIF 自动校准方向，默认 `true`。
 - `-h, --help`：显示帮助。
 
 示例：
@@ -56,6 +59,7 @@ image-map resize --input <file> --output <file> [options]
 
 - `--mode <m>`：`percentage | longEdge | fit`，默认 `percentage`。
 - `--format <fmt>`：`png | jpg | jpeg | webp`，默认 `webp`。
+- `--auto-orient <bool>`：是否按 EXIF 自动校准方向，默认 `true`。
 - `--resize-filter <f>`：同 `generate`，默认 `catmullRom`。
 - `--sharpen <bool>`：是否对缩小后的图做锐化，默认 `true`。
 - `--sharpen-sigma / --sharpen-amount / --sharpen-threshold`：与瓦片缩放的锐化参数保持一致。
@@ -93,6 +97,8 @@ const result = await ImageMap.generate({
   origin: 'topLeft',
   minZoom: 0,
   maxZoom: 4,
+  // 默认 true：按 EXIF 自动校准输入方向
+  autoOrient: true,
   onProgress: (current, total, message) => {
     console.log(`${current}/${total}`, message)
   },
@@ -108,6 +114,8 @@ const resized = await ImageMap.resize({
   mode: { type: 'percentage', value: 50 },
   // 或者指定长边像素：mode: { type: 'longEdge', pixels: 1200 },
   format: 'webp',
+  // 默认 true：按 EXIF 自动校准输入方向
+  autoOrient: true,
   onProgress: (current, total, message) => {
     console.log(`${current}/${total}`, message)
   },

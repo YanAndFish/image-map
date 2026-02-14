@@ -86,6 +86,9 @@ pub struct GenerateOptions {
   pub min_zoom: u8,
   /// The maximum zoom level to generate.
   pub max_zoom: u8,
+  /// Whether to auto-orient input image pixels using EXIF orientation metadata.
+  #[serde(default = "default_auto_orient")]
+  pub auto_orient: bool,
   /// Resize filter for building lower zoom levels.
   #[serde(default)]
   pub resize_filter: ResizeFilter,
@@ -157,6 +160,10 @@ impl Default for DownscaleSharpenOptions {
       threshold: default_downscale_sharpen_threshold(),
     }
   }
+}
+
+fn default_auto_orient() -> bool {
+  true
 }
 
 fn default_downscale_sharpen_enabled() -> bool {
@@ -243,6 +250,9 @@ pub struct ResizeOptions {
   pub mode: ResizeMode,
   /// Output format for the resized image.
   pub format: TileFormat,
+  /// Whether to auto-orient input image pixels using EXIF orientation metadata.
+  #[serde(default = "default_auto_orient")]
+  pub auto_orient: bool,
   /// Resize filter for downscaling.
   #[serde(default)]
   pub resize_filter: ResizeFilter,
@@ -257,9 +267,9 @@ pub struct ResizeOptions {
 pub struct ResizeResult {
   /// Output file path.
   pub output_path: String,
-  /// Original image width.
+  /// Input image width after EXIF auto-orientation (if enabled).
   pub original_width: u32,
-  /// Original image height.
+  /// Input image height after EXIF auto-orientation (if enabled).
   pub original_height: u32,
   /// Resized image width.
   pub width: u32,

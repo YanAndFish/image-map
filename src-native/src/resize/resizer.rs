@@ -3,7 +3,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::image::{encoder, resize};
+use crate::image::{decoder, encoder, resize};
 use crate::protocol::{ResizeOptions, ResizeResult};
 use crate::tile::ProgressEvent;
 use crate::{ImageMapError, Result};
@@ -27,10 +27,7 @@ pub fn resize_image(
 
   report(0, 3, "Loading image...".to_string());
 
-  // Disable decode limits to allow large source images; rely on system memory limits instead.
-  let mut reader = ::image::ImageReader::open(input_path)?;
-  reader.no_limits();
-  let original = reader.decode()?.to_rgba8();
+  let original = decoder::decode_rgba8(input_path, options.auto_orient)?;
 
   let original_width = original.width();
   let original_height = original.height();
@@ -74,4 +71,108 @@ pub fn resize_image(
     width: new_width,
     height: new_height,
   })
+}
+
+#[cfg(test)]
+mod tests {
+  use std::fs;
+
+  use ::image::{DynamicImage, ImageBuffer, ImageFormat, Rgb};
+  use tempfile::tempdir;
+
+  use super::*;
+  use crate::protocol::{DownscaleSharpenOptions, ResizeFilter, ResizeMode, TileFormat};
+
+  #[test]
+  fn resize_image_applies_exif_orientation_by_default()
+  -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = tempdir()?;
+    let input_path = temp_dir.path().join("input.jpg");
+    let output_path = temp_dir.path().join("output.png");
+
+    let rgb = ImageBuffer::from_fn(3, 2, |x, y| Rgb([(x * 40) as u8, (y * 70) as u8, 200]));
+    DynamicImage::ImageRgb8(rgb).save_with_format(&input_path, ImageFormat::Jpeg)?;
+
+    let jpeg = fs::read(&input_path)?;
+    fs::write(&input_path, inject_exif_orientation(&jpeg, 6))?;
+
+    let options = ResizeOptions {
+      mode: ResizeMode::LongEdge { pixels: 300 },
+      format: TileFormat::Png,
+      auto_orient: true,
+      resize_filter: ResizeFilter::CatmullRom,
+      sharpen: DownscaleSharpenOptions::default(),
+    };
+
+    let result = resize_image(&input_path, &output_path, &options, None)?;
+    assert_eq!(result.original_width, 2);
+    assert_eq!(result.original_height, 3);
+    assert_eq!(result.width, 200);
+    assert_eq!(result.height, 300);
+
+    Ok(())
+  }
+
+  #[test]
+  fn resize_image_keeps_original_orientation_when_disabled()
+  -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = tempdir()?;
+    let input_path = temp_dir.path().join("input.jpg");
+    let output_path = temp_dir.path().join("output.png");
+
+    let rgb = ImageBuffer::from_fn(3, 2, |x, y| Rgb([(x * 40) as u8, (y * 70) as u8, 200]));
+    DynamicImage::ImageRgb8(rgb).save_with_format(&input_path, ImageFormat::Jpeg)?;
+
+    let jpeg = fs::read(&input_path)?;
+    fs::write(&input_path, inject_exif_orientation(&jpeg, 6))?;
+
+    let options = ResizeOptions {
+      mode: ResizeMode::LongEdge { pixels: 300 },
+      format: TileFormat::Png,
+      auto_orient: false,
+      resize_filter: ResizeFilter::CatmullRom,
+      sharpen: DownscaleSharpenOptions::default(),
+    };
+
+    let result = resize_image(&input_path, &output_path, &options, None)?;
+    assert_eq!(result.original_width, 3);
+    assert_eq!(result.original_height, 2);
+    assert_eq!(result.width, 300);
+    assert_eq!(result.height, 200);
+
+    Ok(())
+  }
+
+  /// Insert an EXIF APP1 segment with orientation into a JPEG byte stream.
+  fn inject_exif_orientation(jpeg: &[u8], orientation: u16) -> Vec<u8> {
+    assert!((1..=8).contains(&orientation));
+    assert!(jpeg.len() >= 2);
+    assert_eq!(jpeg[0], 0xFF);
+    assert_eq!(jpeg[1], 0xD8);
+
+    let exif_payload = exif_payload_with_orientation(orientation);
+    let segment_len = (exif_payload.len() + 2) as u16;
+
+    let mut out = Vec::with_capacity(jpeg.len() + 4 + exif_payload.len());
+    out.extend_from_slice(&jpeg[0..2]);
+    out.extend_from_slice(&[0xFF, 0xE1]);
+    out.extend_from_slice(&segment_len.to_be_bytes());
+    out.extend_from_slice(&exif_payload);
+    out.extend_from_slice(&jpeg[2..]);
+    out
+  }
+
+  /// Build a minimal Exif payload containing a single orientation tag in IFD0.
+  fn exif_payload_with_orientation(orientation: u16) -> Vec<u8> {
+    let mut payload = Vec::with_capacity(32);
+    payload.extend_from_slice(b"Exif\0\0");
+    payload.extend_from_slice(&[0x4D, 0x4D, 0x00, 0x2A, 0x00, 0x00, 0x00, 0x08]);
+    payload.extend_from_slice(&[0x00, 0x01]);
+    payload.extend_from_slice(&[0x01, 0x12]);
+    payload.extend_from_slice(&[0x00, 0x03]);
+    payload.extend_from_slice(&[0x00, 0x00, 0x00, 0x01]);
+    payload.extend_from_slice(&[(orientation >> 8) as u8, orientation as u8, 0x00, 0x00]);
+    payload.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]);
+    payload
+  }
 }

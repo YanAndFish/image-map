@@ -32,6 +32,8 @@ export interface WorkerGenerateParams {
   minZoom?: number
   /** Maximum zoom level. */
   maxZoom?: number
+  /** Whether to auto-orient input image pixels using EXIF orientation metadata. */
+  autoOrient?: boolean
 }
 
 /**
@@ -48,6 +50,8 @@ export interface WorkerResizeParams {
   mode: ResizeMode
   /** Output format. */
   format?: TileFormat
+  /** Whether to auto-orient input image pixels using EXIF orientation metadata. */
+  autoOrient?: boolean
   /** Resize filter for downscaling. */
   resizeFilter?: ResizeFilter
   /** Sharpening configuration for downscaling. */

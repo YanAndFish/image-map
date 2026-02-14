@@ -42,6 +42,7 @@ async function runGenerate(args: string[]) {
   const origin = (getStringArg(args, '--origin') ?? 'topLeft') as Origin
   const minZoom = getNumberArg(args, '--min-zoom', 0)
   const maxZoom = getNumberArg(args, '--max-zoom', 0)
+  const autoOrient = getBooleanArg(args, '--auto-orient', true)
   const resizeFilter = getStringArg(args, '--resize-filter') as ResizeFilter | undefined
   const downscaleSharpen: DownscaleSharpenOptions = {
     enabled: getBooleanArg(args, '--downscale-sharpen', true),
@@ -58,6 +59,7 @@ async function runGenerate(args: string[]) {
     origin,
     minZoom,
     maxZoom,
+    autoOrient,
     resizeFilter,
     downscaleSharpen,
     onProgress: (current, total, message) => {
@@ -79,6 +81,7 @@ async function runResize(args: string[]) {
 
   const mode = parseResizeMode(args)
   const format = (getStringArg(args, '--format') ?? 'webp') as TileFormat
+  const autoOrient = getBooleanArg(args, '--auto-orient', true)
   const resizeFilter = getStringArg(args, '--resize-filter') as ResizeFilter | undefined
   const sharpen: DownscaleSharpenOptions = {
     enabled: getBooleanArg(args, '--sharpen', true),
@@ -92,6 +95,7 @@ async function runResize(args: string[]) {
     output,
     mode,
     format,
+    autoOrient,
     resizeFilter,
     sharpen,
     onProgress: (current, total, message) => {
@@ -209,6 +213,7 @@ function writeHelp() {
       '  --origin <o>        One of: topLeft | center (default: topLeft)',
       '  --min-zoom <n>      Minimum zoom level (default: 0)',
       '  --max-zoom <n>      Maximum zoom level (default: 0)',
+      '  --auto-orient <bool> Auto-orient by EXIF metadata (default: true)',
       '  --resize-filter <f> One of: lanczos3 | catmullRom | mitchell | hamming | bilinear | box | gaussian (default: catmullRom)',
       '  --downscale-sharpen <bool>        Enable downscale sharpen (default: true)',
       '  --downscale-sharpen-sigma <n>     Gaussian blur sigma (default: 0.5)',
@@ -226,6 +231,7 @@ function writeHelp() {
       '  --width <n>         Max width for fit mode (default: 1200)',
       '  --height <n>        Max height for fit mode (default: 1200)',
       '  --format <fmt>      One of: png | jpg | jpeg | webp (default: webp)',
+      '  --auto-orient <bool> Auto-orient by EXIF metadata (default: true)',
       '  --resize-filter <f> One of: lanczos3 | catmullRom | mitchell | hamming | bilinear | box | gaussian (default: catmullRom)',
       '  --sharpen <bool>    Enable sharpening (default: true)',
       '  --sharpen-sigma <n> Gaussian blur sigma (default: 0.5)',
